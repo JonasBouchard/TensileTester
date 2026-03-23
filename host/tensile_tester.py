@@ -1,0 +1,2 @@
+# main code that runs on the host computer
+# communicate with the microcontroller via serial communication, send commands to control the tensile tester, and receive data from the microcontroller to display it in the GUI
