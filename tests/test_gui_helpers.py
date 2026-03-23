@@ -10,6 +10,7 @@ from host.gui import (
     RunSample,
     build_run_filename,
     export_run_csv,
+    parse_baud_rate,
     sanitize_filename_component,
     validate_specimen_inputs,
 )
@@ -25,15 +26,23 @@ class GuiHelperTests(unittest.TestCase):
 
     def test_validate_specimen_inputs_requires_sample_id(self) -> None:
         with self.assertRaises(ValueError):
-            validate_specimen_inputs("", "10", "2", "25")
+            validate_specimen_inputs("", "20", "25")
+
+    def test_parse_baud_rate_requires_positive_integer(self) -> None:
+        self.assertEqual(parse_baud_rate("115200"), 115200)
+
+        with self.assertRaises(ValueError):
+            parse_baud_rate("bad")
+
+        with self.assertRaises(ValueError):
+            parse_baud_rate("0")
 
     def test_export_run_csv_writes_metadata_header_and_rows(self) -> None:
         metadata = RunMetadata(
             sample_id="sample-001",
-            width_mm=10.0,
-            thickness_mm=2.0,
+            area_mm2=20.0,
             gauge_length_mm=25.0,
-            connection_label="Simulator",
+            connection_label="COM23 - CircuitPython USB Serial [239A:80F4] SN:ABC123 LOC:1-1:x.0",
             started_at="2026-03-23T14:15:16",
             plot_mode="force_displacement",
         )
@@ -62,13 +71,13 @@ class GuiHelperTests(unittest.TestCase):
             contents = output_path.read_text(encoding="utf-8").splitlines()
 
         self.assertEqual(contents[0], "# sample_id,sample-001")
-        self.assertEqual(contents[1], "# width_mm,10.000000")
+        self.assertEqual(contents[1], "# area_mm2,20.000000")
         self.assertEqual(
-            contents[7],
+            contents[6],
             "timestamp_s,force_n,displacement_mm,stress_mpa,strain_percent,state",
         )
-        self.assertEqual(contents[8], "0.000000,12.500000,0.200000,0.625000,0.800000,running")
-        self.assertEqual(contents[9], "0.100000,14.000000,0.400000,0.700000,1.600000,idle")
+        self.assertEqual(contents[7], "0.000000,12.500000,0.200000,0.625000,0.800000,running")
+        self.assertEqual(contents[8], "0.100000,14.000000,0.400000,0.700000,1.600000,idle")
 
 
 if __name__ == "__main__":

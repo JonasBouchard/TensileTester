@@ -10,39 +10,42 @@ from tkinter import filedialog, messagebox, ttk
 from typing import Callable
 
 try:
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-    from matplotlib.figure import Figure
-except ImportError:
-    Figure = None
-    FigureCanvasTkAgg = None
-
-try:
-    from .tensile_tester import (
+    from .controller import (
         DEFAULT_BAUD_RATE,
-        MOCK_PORT_NAME,
         SpecimenDimensions,
         TesterController,
         TesterEvent,
-        list_serial_ports,
+        get_serial_support_error,
+        list_serial_port_infos,
         validate_specimen_dimensions,
     )
+    from .plotting import PLOT_MODE_FORCE, PLOT_MODE_STRESS, LivePlot, create_live_plot
 except ImportError:
-    from tensile_tester import (
+    from controller import (
         DEFAULT_BAUD_RATE,
-        MOCK_PORT_NAME,
         SpecimenDimensions,
         TesterController,
         TesterEvent,
-        list_serial_ports,
+        get_serial_support_error,
+        list_serial_port_infos,
         validate_specimen_dimensions,
     )
+    from plotting import PLOT_MODE_FORCE, PLOT_MODE_STRESS, LivePlot, create_live_plot
 
 
 POLL_INTERVAL_MS = 100
 LOG_LINE_LIMIT = 300
 DEFAULT_WINDOW_SIZE = "1380x860"
-PLOT_MODE_FORCE = "force_displacement"
-PLOT_MODE_STRESS = "stress_strain"
+BAUD_RATE_OPTIONS = (
+    "9600",
+    "19200",
+    "38400",
+    "57600",
+    "115200",
+    "230400",
+    "460800",
+    "921600",
+)
 STATE_COLORS = {
     "connected": "#1d4ed8",
     "idle": "#0f766e",
@@ -66,8 +69,7 @@ class RunSample:
 @dataclass(frozen=True)
 class RunMetadata:
     sample_id: str
-    width_mm: float
-    thickness_mm: float
+    area_mm2: float
     gauge_length_mm: float
     connection_label: str
     started_at: str
@@ -76,8 +78,7 @@ class RunMetadata:
     def as_rows(self) -> list[tuple[str, str]]:
         return [
             ("sample_id", self.sample_id),
-            ("width_mm", f"{self.width_mm:.6f}"),
-            ("thickness_mm", f"{self.thickness_mm:.6f}"),
+            ("area_mm2", f"{self.area_mm2:.6f}"),
             ("gauge_length_mm", f"{self.gauge_length_mm:.6f}"),
             ("connection_label", self.connection_label),
             ("started_at", self.started_at),
@@ -99,8 +100,7 @@ def build_run_filename(sample_id: str, timestamp: datetime | None = None) -> str
 
 def validate_specimen_inputs(
     sample_id: str,
-    width_text: str,
-    thickness_text: str,
+    area_text: str,
     gauge_length_text: str,
 ) -> tuple[str, SpecimenDimensions]:
     sample_id_value = sample_id.strip()
@@ -108,8 +108,7 @@ def validate_specimen_inputs(
         raise ValueError("Sample ID is required.")
 
     specimen = validate_specimen_dimensions(
-        width_mm=float(width_text),
-        thickness_mm=float(thickness_text),
+        area_mm2=float(area_text),
         gauge_length_mm=float(gauge_length_text),
     )
     return sample_id_value, specimen
@@ -152,27 +151,35 @@ def format_metric(value: float | None, precision: int = 3, fallback: str = "--")
     return f"{value:.{precision}f}"
 
 
+def parse_baud_rate(raw_value: str) -> int:
+    try:
+        baud_rate = int(raw_value)
+    except ValueError as exc:
+        raise ValueError("Baud rate must be an integer.") from exc
+
+    if baud_rate <= 0:
+        raise ValueError("Baud rate must be greater than zero.")
+    return baud_rate
+
+
 class TensileTesterApp:
     def __init__(self, root: tk.Tk) -> None:
-        if Figure is None or FigureCanvasTkAgg is None:
-            raise RuntimeError(
-                "matplotlib is required for the GUI. Install it with 'pip install matplotlib'."
-            )
-
         self.root = root
         self.controller = TesterController()
+        self.live_plot: LivePlot | None = None
 
-        self.port_var = tk.StringVar(value=MOCK_PORT_NAME)
+        self.port_var = tk.StringVar(value="")
+        self.baud_var = tk.StringVar(value=str(DEFAULT_BAUD_RATE))
+        self.test_mode_var = tk.BooleanVar(value=False)
         self.sample_id_var = tk.StringVar(value="sample-001")
-        self.width_var = tk.StringVar(value="10.0")
-        self.thickness_var = tk.StringVar(value="2.0")
+        self.area_var = tk.StringVar(value="20.0")
         self.gauge_length_var = tk.StringVar(value="25.0")
         self.jog_distance_var = tk.StringVar(value="1.0")
         self.jog_speed_var = tk.StringVar(value="5.0")
         self.test_speed_var = tk.StringVar(value="10.0")
         self.plot_mode_var = tk.StringVar(value=PLOT_MODE_FORCE)
         self.specimen_status_var = tk.StringVar(value="Enter specimen details to enable Start Test.")
-        self.connection_message_var = tk.StringVar(value="Select a serial port or Simulator.")
+        self.connection_message_var = tk.StringVar(value="Select a serial port.")
         self.state_text_var = tk.StringVar(value="Disconnected")
         self.force_var = tk.StringVar(value="-- N")
         self.displacement_var = tk.StringVar(value="-- mm")
@@ -182,6 +189,7 @@ class TensileTesterApp:
         self.state_metric_var = tk.StringVar(value="disconnected")
 
         self.available_ports: list[str] = []
+        self.port_display_map: dict[str, str] = {}
         self.current_metadata: RunMetadata | None = None
         self.run_samples: list[RunSample] = []
         self.run_active = False
@@ -221,17 +229,34 @@ class TensileTesterApp:
         connection_frame = ttk.Frame(self.root, padding=(14, 14, 14, 10))
         connection_frame.grid(row=0, column=0, sticky="ew")
         connection_frame.columnconfigure(1, weight=1)
-        connection_frame.columnconfigure(5, weight=1)
+        connection_frame.columnconfigure(7, weight=1)
 
         ttk.Label(connection_frame, text="Connection").grid(row=0, column=0, sticky="w", padx=(0, 8))
-        self.port_combo = ttk.Combobox(connection_frame, textvariable=self.port_var, state="readonly", width=28)
+        self.port_combo = ttk.Combobox(connection_frame, textvariable=self.port_var, state="readonly", width=34)
         self.port_combo.grid(row=0, column=1, sticky="ew")
         ttk.Button(connection_frame, text="Refresh Ports", command=self._refresh_port_list).grid(
-            row=0, column=2, padx=(8, 0)
+            row=0,
+            column=2,
+            padx=(8, 0),
         )
         self.connect_button = ttk.Button(connection_frame, text="Connect", command=self._toggle_connection)
         self.connect_button.grid(row=0, column=3, padx=(8, 0))
-        ttk.Label(connection_frame, text=f"Baud {DEFAULT_BAUD_RATE}").grid(row=0, column=4, padx=(14, 0))
+        self.test_mode_check = ttk.Checkbutton(
+            connection_frame,
+            text="Virtual Simulation",
+            variable=self.test_mode_var,
+            command=self._handle_test_mode_change,
+        )
+        self.test_mode_check.grid(row=0, column=4, padx=(12, 0), sticky="w")
+        ttk.Label(connection_frame, text="Baud").grid(row=0, column=5, padx=(14, 4), sticky="e")
+        self.baud_combo = ttk.Combobox(
+            connection_frame,
+            textvariable=self.baud_var,
+            state="readonly",
+            values=BAUD_RATE_OPTIONS,
+            width=10,
+        )
+        self.baud_combo.grid(row=0, column=6, sticky="w")
         self.state_indicator = tk.Label(
             connection_frame,
             textvariable=self.state_text_var,
@@ -242,11 +267,11 @@ class TensileTesterApp:
             padx=10,
             pady=6,
         )
-        self.state_indicator.grid(row=0, column=5, sticky="e", padx=(14, 0))
+        self.state_indicator.grid(row=0, column=7, sticky="e", padx=(14, 0))
         ttk.Label(connection_frame, textvariable=self.connection_message_var).grid(
             row=1,
             column=0,
-            columnspan=6,
+            columnspan=8,
             sticky="w",
             pady=(8, 0),
         )
@@ -278,14 +303,12 @@ class TensileTesterApp:
 
         ttk.Label(frame, text="Sample ID").grid(row=0, column=0, sticky="w", pady=3)
         ttk.Entry(frame, textvariable=self.sample_id_var, width=20).grid(row=0, column=1, sticky="ew", pady=3)
-        ttk.Label(frame, text="Width (mm)").grid(row=1, column=0, sticky="w", pady=3)
-        ttk.Entry(frame, textvariable=self.width_var).grid(row=1, column=1, sticky="ew", pady=3)
-        ttk.Label(frame, text="Thickness (mm)").grid(row=2, column=0, sticky="w", pady=3)
-        ttk.Entry(frame, textvariable=self.thickness_var).grid(row=2, column=1, sticky="ew", pady=3)
-        ttk.Label(frame, text="Gauge Length (mm)").grid(row=3, column=0, sticky="w", pady=3)
-        ttk.Entry(frame, textvariable=self.gauge_length_var).grid(row=3, column=1, sticky="ew", pady=3)
+        ttk.Label(frame, text="Area (mm^2)").grid(row=1, column=0, sticky="w", pady=3)
+        ttk.Entry(frame, textvariable=self.area_var).grid(row=1, column=1, sticky="ew", pady=3)
+        ttk.Label(frame, text="Gauge Length (mm)").grid(row=2, column=0, sticky="w", pady=3)
+        ttk.Entry(frame, textvariable=self.gauge_length_var).grid(row=2, column=1, sticky="ew", pady=3)
         ttk.Label(frame, textvariable=self.specimen_status_var, wraplength=290).grid(
-            row=4,
+            row=3,
             column=0,
             columnspan=2,
             sticky="w",
@@ -403,22 +426,12 @@ class TensileTesterApp:
         plot_frame.columnconfigure(0, weight=1)
         plot_frame.rowconfigure(0, weight=1)
 
-        self.figure = Figure(figsize=(8.0, 6.0), dpi=100)
-        self.axes = self.figure.add_subplot(111)
-        self.axes.grid(True, linestyle="--", linewidth=0.7, alpha=0.4)
-        self.axes.set_title("No run data yet")
-        self.axes.set_xlabel("Displacement (mm)")
-        self.axes.set_ylabel("Force (N)")
-
-        self.canvas = FigureCanvasTkAgg(self.figure, master=plot_frame)
-        canvas_widget = self.canvas.get_tk_widget()
-        canvas_widget.grid(row=0, column=0, sticky="nsew")
+        self.live_plot = create_live_plot(plot_frame)
 
     def _bind_validation(self) -> None:
         for variable in (
             self.sample_id_var,
-            self.width_var,
-            self.thickness_var,
+            self.area_var,
             self.gauge_length_var,
             self.test_speed_var,
             self.jog_distance_var,
@@ -434,8 +447,7 @@ class TensileTesterApp:
         try:
             sample_id, specimen = validate_specimen_inputs(
                 self.sample_id_var.get(),
-                self.width_var.get(),
-                self.thickness_var.get(),
+                self.area_var.get(),
                 self.gauge_length_var.get(),
             )
         except ValueError as exc:
@@ -444,19 +456,36 @@ class TensileTesterApp:
             return False
 
         self.controller.set_specimen_dimensions(
-            width_mm=specimen.width_mm,
-            thickness_mm=specimen.thickness_mm,
+            area_mm2=specimen.area_mm2,
             gauge_length_mm=specimen.gauge_length_mm,
         )
         self.specimen_status_var.set(f"Specimen ready for {sample_id}.")
         return True
 
     def _refresh_port_list(self) -> None:
-        self.available_ports = [MOCK_PORT_NAME, *list_serial_ports()]
+        serial_support_error = get_serial_support_error()
+        port_infos = list_serial_port_infos()
+
+        self.available_ports = [port.label for port in port_infos]
+        self.port_display_map = {}
+        for port in port_infos:
+            self.port_display_map[port.label] = port.device
+
         self.port_combo.configure(values=self.available_ports)
         current_value = self.port_var.get()
-        if current_value not in self.available_ports:
-            self.port_var.set(self.available_ports[0] if self.available_ports else MOCK_PORT_NAME)
+        if port_infos and current_value not in self.available_ports:
+            self.port_var.set(port_infos[0].label)
+        elif current_value not in self.available_ports:
+            self.port_var.set("")
+
+        if serial_support_error:
+            self.connection_message_var.set(serial_support_error)
+        elif port_infos:
+            self.connection_message_var.set(self.port_var.get())
+        else:
+            self.connection_message_var.set(
+                "No serial ports detected. Reconnect the board and look for a COM port, not just CIRCUITPY."
+            )
 
     def _toggle_connection(self) -> None:
         if self.controller.connected:
@@ -464,20 +493,27 @@ class TensileTesterApp:
             self._refresh_ui_state()
             return
 
-        selected_port = self.port_var.get().strip()
-        if not selected_port:
-            messagebox.showerror("Connect", "Choose a serial port or Simulator before connecting.")
+        selected_choice = self.port_var.get().strip()
+        selected_port = self.port_display_map.get(selected_choice, selected_choice)
+        if not selected_choice:
+            messagebox.showerror("Connect", "Choose a serial port before connecting.")
             return
 
-        use_mock = selected_port == MOCK_PORT_NAME
         try:
-            self.controller.connect(port=selected_port, baud=DEFAULT_BAUD_RATE, use_mock=use_mock)
+            baud_rate = parse_baud_rate(self.baud_var.get())
+            self.controller.connect(port=selected_port, baud=baud_rate)
+            self.controller.set_device_mode(self.test_mode_var.get())
         except Exception as exc:
             messagebox.showerror("Connect", str(exc))
             return
 
-        self._append_log(f"Connected to {selected_port}.")
+        self._append_log(f"Connected to {selected_choice}.")
         self._refresh_ui_state()
+
+    def _handle_test_mode_change(self) -> None:
+        if not self.controller.connected:
+            return
+        self._send_controller_command(lambda: self.controller.set_device_mode(self.test_mode_var.get()))
 
     def _tare_force(self) -> None:
         self._send_controller_command(self.controller.tare_force)
@@ -505,8 +541,7 @@ class TensileTesterApp:
         try:
             sample_id, specimen = validate_specimen_inputs(
                 self.sample_id_var.get(),
-                self.width_var.get(),
-                self.thickness_var.get(),
+                self.area_var.get(),
                 self.gauge_length_var.get(),
             )
             speed_mm_per_min = self._parse_positive_number(self.test_speed_var.get(), "Test speed")
@@ -516,18 +551,16 @@ class TensileTesterApp:
 
         metadata = RunMetadata(
             sample_id=sample_id,
-            width_mm=specimen.width_mm,
-            thickness_mm=specimen.thickness_mm,
+            area_mm2=specimen.area_mm2,
             gauge_length_mm=specimen.gauge_length_mm,
-            connection_label=self.controller.connection_label or self.port_var.get().strip(),
+            connection_label=self.port_var.get().strip() or self.controller.connection_label,
             started_at=datetime.now().isoformat(timespec="seconds"),
             plot_mode=self.plot_mode_var.get(),
         )
 
         try:
             self.controller.set_specimen_dimensions(
-                width_mm=specimen.width_mm,
-                thickness_mm=specimen.thickness_mm,
+                area_mm2=specimen.area_mm2,
                 gauge_length_mm=specimen.gauge_length_mm,
             )
             self.controller.start_test(speed_mm_per_min)
@@ -652,9 +685,13 @@ class TensileTesterApp:
         running = controller_state == "running" or self.run_active
         specimen_ready = self._sync_specimen()
         run_available = bool(self.current_metadata and self.run_samples and not running)
+        port_selected = bool(self.port_var.get().strip())
 
-        self.connect_button.configure(text="Disconnect" if connected else "Connect")
+        connect_state = "normal" if connected or port_selected else "disabled"
+        self.connect_button.configure(text="Disconnect" if connected else "Connect", state=connect_state)
         self.port_combo.configure(state="disabled" if connected else "readonly")
+        self.test_mode_check.configure(state="disabled" if connected and running else "normal")
+        self.baud_combo.configure(state="disabled" if connected else "readonly")
 
         ready_state = connected and controller_state not in {"running", "estop", "fault", "disconnected"}
         manual_state = "normal" if ready_state else "disabled"
@@ -692,49 +729,9 @@ class TensileTesterApp:
         self.log_widget.configure(state="disabled")
 
     def _redraw_plot(self) -> None:
-        self.axes.clear()
-        self.axes.grid(True, linestyle="--", linewidth=0.7, alpha=0.4)
-
-        if not self.run_samples:
-            if self.plot_mode_var.get() == PLOT_MODE_STRESS:
-                self.axes.set_xlabel("Strain (%)")
-                self.axes.set_ylabel("Stress (MPa)")
-                self.axes.set_title("No stress-strain data yet")
-            else:
-                self.axes.set_xlabel("Displacement (mm)")
-                self.axes.set_ylabel("Force (N)")
-                self.axes.set_title("No force-displacement data yet")
-            self.canvas.draw_idle()
+        if self.live_plot is None:
             return
-
-        if self.plot_mode_var.get() == PLOT_MODE_STRESS:
-            points = [
-                (sample.strain_percent, sample.stress_mpa)
-                for sample in self.run_samples
-                if sample.strain_percent is not None and sample.stress_mpa is not None
-            ]
-            x_values = [point[0] for point in points]
-            y_values = [point[1] for point in points]
-            self.axes.set_xlabel("Strain (%)")
-            self.axes.set_ylabel("Stress (MPa)")
-            self.axes.set_title("Stress vs Strain")
-            line_color = "#9a3412"
-        else:
-            x_values = [sample.displacement_mm for sample in self.run_samples]
-            y_values = [sample.force_n for sample in self.run_samples]
-            self.axes.set_xlabel("Displacement (mm)")
-            self.axes.set_ylabel("Force (N)")
-            self.axes.set_title("Force vs Displacement")
-            line_color = "#1d4ed8"
-
-        if x_values and y_values:
-            self.axes.plot(x_values, y_values, color=line_color, linewidth=2.0)
-            self.axes.scatter([x_values[-1]], [y_values[-1]], color=line_color, s=28, zorder=3)
-        else:
-            self.axes.text(0.5, 0.5, "Derived values unavailable", ha="center", va="center")
-
-        self.figure.tight_layout()
-        self.canvas.draw_idle()
+        self.live_plot.redraw(self.run_samples, self.plot_mode_var.get())
 
     def _handle_close(self) -> None:
         try:
@@ -744,12 +741,8 @@ class TensileTesterApp:
             self.root.destroy()
 
 
-def main() -> None:
+def launch_gui() -> None:
     root = tk.Tk()
     app = TensileTesterApp(root)
     app._append_log("Application ready.")
     root.mainloop()
-
-
-if __name__ == "__main__":
-    main()

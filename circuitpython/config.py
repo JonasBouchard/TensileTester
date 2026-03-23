@@ -1,5 +1,3 @@
-# mechanical configuration (such as maximum force, number of steps per mm, etc.)
-
-# pins configuration
-
-# other settings to allow testing without hardware and more
+USE_SIMULATION = True
+SAMPLE_INTERVAL_S = 0.1
+LOOP_DELAY_S = 0.02

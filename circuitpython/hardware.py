@@ -1,7 +1,21 @@
-# tmc2209 stepper driver for controlling the stepper motor
+class HardwareTesterBackend:
+    def __init__(self):
+        self.state = "idle"
+        self.startup_message = (
+            "Hardware backend placeholder active."
+        )
 
-# hx711 load cell amplifier for measuring stress
+    def handle_command(self, command, now):
+        _ = command
+        _ = now
+        return [
+            {
+                "type": "error",
+                "code": "not_implemented",
+                "message": "Hardware control is not implemented yet.",
+            }
+        ]
 
-# as5600 magnetic encoder for measuring strain
-
-# hw-040 encoder for controlling speed and direction
+    def poll(self, now):
+        _ = now
+        return []
