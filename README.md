@@ -4,16 +4,9 @@ Host-side operator GUI and controller for a benchtop tensile tester.
 
 ## Requirements
 
-- Python 3.12
-- Tkinter from the system Python installation
+- `tkinter`
 - `matplotlib`
 - `pyserial`
-
-Install the Python dependencies with:
-
-```bash
-python3 -m pip install -r requirements.txt
-```
 
 ## Run the GUI
 
