@@ -10,6 +10,7 @@ from host.gui import (
     RunSample,
     build_run_filename,
     export_run_csv,
+    format_connection_error,
     parse_baud_rate,
     sanitize_filename_component,
     validate_specimen_inputs,
@@ -36,6 +37,17 @@ class GuiHelperTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             parse_baud_rate("0")
+
+    def test_format_connection_error_expands_linux_permission_denied(self) -> None:
+        message = format_connection_error(
+            PermissionError("[Errno 13] Permission denied: '/dev/ttyACM0'"),
+            "/dev/ttyACM0",
+            simulation_enabled=False,
+        )
+
+        self.assertIn("Linux denied access", message)
+        self.assertIn("dialout", message)
+        self.assertIn("/dev/ttyACM0", message)
 
     def test_export_run_csv_writes_metadata_header_and_rows(self) -> None:
         metadata = RunMetadata(

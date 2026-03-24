@@ -4,11 +4,13 @@ import json
 import queue
 import re
 import threading
+import time
 from dataclasses import dataclass
 from typing import Any, Callable, Protocol
 
 
 DEFAULT_BAUD_RATE = 115200
+SIMULATION_CONNECTION_LABEL = "Virtual Simulation"
 PY_SERIAL_MISSING_MESSAGE = (
     "pyserial is not installed. Install it with 'py -3 -m pip install pyserial'."
 )
@@ -312,10 +314,173 @@ class SerialTransport:
         self._serial.flush()
 
 
+class SimulationTransport:
+    SAMPLE_INTERVAL_S = 0.1
+
+    def __init__(self, _port: str, _baud: int) -> None:
+        self._pending_lines: queue.Queue[str] = queue.Queue()
+        self._state = "idle"
+        self._speed_mm_per_min = 0.0
+        self._absolute_position_mm = 0.0
+        self._zero_reference_mm = 0.0
+        self._tare_reference_n = 0.0
+        self._last_motion_time = 0.0
+        self._last_sample_time = 0.0
+        self._run_started_at: float | None = None
+        self._closed = False
+        self._enqueue_status("idle", "Virtual simulation ready.")
+
+    def close(self) -> None:
+        self._closed = True
+
+    def read_line(self, timeout: float = 0.1) -> str | None:
+        stop_at = time.monotonic() + timeout
+        while not self._closed:
+            try:
+                return self._pending_lines.get_nowait()
+            except queue.Empty:
+                pass
+
+            now = time.monotonic()
+            self._advance_motion(now)
+
+            if self._state == "running" and now - self._last_sample_time >= self.SAMPLE_INTERVAL_S:
+                self._last_sample_time = now
+                return json.dumps(self._build_sample_message(now))
+
+            remaining = stop_at - now
+            if remaining <= 0:
+                return None
+            time.sleep(min(0.02, remaining))
+
+        return None
+
+    def write_command(self, command: dict[str, Any]) -> None:
+        cmd = str(command.get("cmd", ""))
+        now = time.monotonic()
+        self._advance_motion(now)
+
+        if cmd == "set_mode":
+            mode = str(command.get("mode", ""))
+            if mode == "simulation":
+                self._state = "idle"
+                self._enqueue_status("idle", "Virtual simulation enabled.")
+            elif mode == "hardware":
+                self._state = "idle"
+                self._enqueue_status("idle", "Hardware mode selected.")
+            else:
+                self._enqueue_error("invalid_mode", "Mode must be 'simulation' or 'hardware'.")
+            return
+
+        if self._state == "estop" and cmd in {"tare_force", "zero_displacement", "jog", "start_test"}:
+            self._enqueue_error("estop_active", "Disconnect to clear E-Stop.")
+            return
+
+        if cmd == "tare_force":
+            self._tare_reference_n = self._raw_force_for_displacement(self._current_displacement_mm())
+            self._enqueue_status("idle", "Force tared.")
+            self._enqueue_sample(now)
+            return
+
+        if cmd == "zero_displacement":
+            self._zero_reference_mm = self._absolute_position_mm
+            self._enqueue_status("idle", "Displacement zeroed.")
+            self._enqueue_sample(now)
+            return
+
+        if cmd == "jog":
+            if self._state == "running":
+                self._enqueue_error("busy", "Cannot jog while the test is running.")
+                return
+
+            direction = str(command.get("direction", "forward"))
+            distance_mm = max(float(command.get("distance_mm", 0.0)), 0.0)
+            delta = distance_mm if direction == "forward" else -distance_mm
+            self._absolute_position_mm += delta
+            self._enqueue_status("idle", f"Jogged {direction} by {distance_mm:.3f} mm.")
+            self._enqueue_sample(now)
+            return
+
+        if cmd == "start_test":
+            self._speed_mm_per_min = max(float(command.get("speed_mm_per_min", 0.0)), 0.0)
+            self._state = "running"
+            self._run_started_at = now
+            self._last_motion_time = now
+            self._last_sample_time = 0.0
+            self._enqueue_status("running", f"Pull started at {self._speed_mm_per_min:.3f} mm/min.")
+            return
+
+        if cmd == "stop":
+            if self._state == "running":
+                self._state = "idle"
+                self._speed_mm_per_min = 0.0
+                self._enqueue_sample(now)
+                self._enqueue_status("idle", "Test stopped.")
+            return
+
+        if cmd == "estop":
+            self._state = "estop"
+            self._speed_mm_per_min = 0.0
+            self._enqueue_sample(now)
+            self._enqueue_status("estop", "Emergency stop triggered.")
+            return
+
+        self._enqueue_error("unknown_command", f"Unsupported command: {cmd!r}")
+
+    def _advance_motion(self, now: float) -> None:
+        if self._last_motion_time == 0.0:
+            self._last_motion_time = now
+            return
+
+        if self._state == "running":
+            delta_s = max(0.0, now - self._last_motion_time)
+            self._absolute_position_mm += self._speed_mm_per_min * delta_s / 60.0
+        self._last_motion_time = now
+
+    def _current_displacement_mm(self) -> float:
+        return self._absolute_position_mm - self._zero_reference_mm
+
+    def _raw_force_for_displacement(self, displacement_mm: float) -> float:
+        extension = max(0.0, displacement_mm)
+        if extension < 3.0:
+            return extension * 15.0
+        if extension < 6.0:
+            return 45.0 + (extension - 3.0) * 8.0
+        return max(0.0, 69.0 - (extension - 6.0) * 10.0)
+
+    def _measured_force_n(self) -> float:
+        measured = self._raw_force_for_displacement(self._current_displacement_mm()) - self._tare_reference_n
+        return max(0.0, measured)
+
+    def _build_sample_message(self, now: float) -> dict[str, float | str]:
+        if self._run_started_at is None:
+            timestamp_s = 0.0
+        else:
+            timestamp_s = max(0.0, now - self._run_started_at)
+
+        return {
+            "type": "sample",
+            "timestamp_s": round(timestamp_s, 3),
+            "force_n": round(self._measured_force_n(), 3),
+            "displacement_mm": round(self._current_displacement_mm(), 3),
+            "state": self._state,
+        }
+
+    def _enqueue_status(self, state: str, message: str) -> None:
+        self._pending_lines.put(json.dumps({"type": "status", "state": state, "message": message}))
+
+    def _enqueue_error(self, code: str, message: str) -> None:
+        self._pending_lines.put(json.dumps({"type": "error", "code": code, "message": message}))
+
+    def _enqueue_sample(self, now: float) -> None:
+        self._pending_lines.put(json.dumps(self._build_sample_message(now)))
+
+
 class TesterController:
     def __init__(
         self,
         transport_factory: Callable[[str, int], Transport] | None = None,
+        simulation_transport_factory: Callable[[str, int], Transport] | None = None,
     ) -> None:
         self._events: queue.Queue[TesterEvent] = queue.Queue()
         self._transport: Transport | None = None
@@ -324,6 +489,7 @@ class TesterController:
         self._lock = threading.Lock()
         self._specimen: SpecimenDimensions | None = None
         self._transport_factory = transport_factory or SerialTransport
+        self._simulation_transport_factory = simulation_transport_factory or SimulationTransport
         self._connected = False
         self._state = "disconnected"
         self._connection_label = ""
@@ -354,13 +520,17 @@ class TesterController:
         with self._lock:
             self._specimen = None
 
-    def connect(self, port: str, baud: int = DEFAULT_BAUD_RATE) -> None:
+    def connect(self, port: str, baud: int = DEFAULT_BAUD_RATE, simulate: bool = False) -> None:
         with self._lock:
             if self._connected:
                 raise RuntimeError("Controller is already connected.")
 
-            connection_label = port
-            transport = self._transport_factory(port, baud)
+            if simulate:
+                connection_label = SIMULATION_CONNECTION_LABEL
+                transport = self._simulation_transport_factory(connection_label, baud)
+            else:
+                connection_label = port
+                transport = self._transport_factory(port, baud)
 
             self._transport = transport
             self._stop_event.clear()
