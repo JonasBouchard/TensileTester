@@ -42,7 +42,6 @@ class GuiHelperTests(unittest.TestCase):
         message = format_connection_error(
             PermissionError("[Errno 13] Permission denied: '/dev/ttyACM0'"),
             "/dev/ttyACM0",
-            simulation_enabled=False,
         )
 
         self.assertIn("Linux denied access", message)

@@ -20,13 +20,14 @@ python host/tensile_tester.py
 ```
 
 4. In the GUI, choose the board COM port.
-5. Turn on `Virtual Simulation` if you want to test communication without real hardware.
-6. Leave `Virtual Simulation` off if you want to use the hardware backend.
+5. Turn on `Virtual Simulation` if you want the microcontroller to generate simulated data.
+6. Leave `Virtual Simulation` off if you want the microcontroller to use the hardware backend.
 
 ## Notes
 
 - `boot.py` is required for clean USB serial communication.
 - The baud rate can be selected in the GUI.
+- `Virtual Simulation` still uses the selected board COM port. The simulation runs on the microcontroller, not on the host PC.
 
 ## Run Tests
 

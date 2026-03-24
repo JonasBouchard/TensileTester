@@ -12,7 +12,6 @@ from typing import Callable
 try:
     from .controller import (
         DEFAULT_BAUD_RATE,
-        SIMULATION_CONNECTION_LABEL,
         SpecimenDimensions,
         TesterController,
         TesterEvent,
@@ -24,7 +23,6 @@ try:
 except ImportError:
     from controller import (
         DEFAULT_BAUD_RATE,
-        SIMULATION_CONNECTION_LABEL,
         SpecimenDimensions,
         TesterController,
         TesterEvent,
@@ -164,11 +162,8 @@ def parse_baud_rate(raw_value: str) -> int:
     return baud_rate
 
 
-def format_connection_error(exc: Exception, port: str, simulation_enabled: bool) -> str:
+def format_connection_error(exc: Exception, port: str) -> str:
     message = str(exc).strip()
-
-    if simulation_enabled:
-        return message or "Virtual simulation could not start."
 
     if isinstance(exc, PermissionError) or "permission denied" in message.lower() or "[errno 13]" in message.lower():
         return (
@@ -507,8 +502,6 @@ class TensileTesterApp:
 
         if serial_support_error:
             self.connection_message_var.set(serial_support_error)
-        elif self.test_mode_var.get():
-            self.connection_message_var.set("Virtual simulation is enabled. No serial port is required.")
         elif port_infos:
             self.connection_message_var.set(self.port_var.get())
         else:
@@ -522,40 +515,35 @@ class TensileTesterApp:
             self._refresh_ui_state()
             return
 
-        simulation_enabled = self.test_mode_var.get()
         selected_choice = self.port_var.get().strip()
         selected_port = self.port_display_map.get(selected_choice, selected_choice)
-        if not simulation_enabled and not selected_choice:
+        if not selected_choice:
             messagebox.showerror("Connect", "Choose a serial port before connecting.")
             return
 
+        connected = False
         try:
             baud_rate = parse_baud_rate(self.baud_var.get())
-            connection_target = SIMULATION_CONNECTION_LABEL if simulation_enabled else selected_port
-            self.controller.connect(
-                port=connection_target,
-                baud=baud_rate,
-                simulate=simulation_enabled,
-            )
+            self.controller.connect(port=selected_port, baud=baud_rate)
+            connected = True
+            self.controller.set_device_mode(self.test_mode_var.get())
         except Exception as exc:
+            if connected and self.controller.connected:
+                self.controller.disconnect()
             messagebox.showerror(
                 "Connect",
-                format_connection_error(
-                    exc,
-                    selected_port or SIMULATION_CONNECTION_LABEL,
-                    simulation_enabled,
-                ),
+                format_connection_error(exc, selected_port),
             )
             return
 
-        self._append_log(f"Connected to {connection_target}.")
+        self._append_log(f"Connected to {selected_choice}.")
         self._refresh_ui_state()
 
     def _handle_test_mode_change(self) -> None:
-        if self.controller.connected:
+        if not self.controller.connected:
+            self._refresh_ui_state()
             return
-        self._refresh_port_list()
-        self._refresh_ui_state()
+        self._send_controller_command(lambda: self.controller.set_device_mode(self.test_mode_var.get()))
 
     def _tare_force(self) -> None:
         self._send_controller_command(self.controller.tare_force)
@@ -724,17 +712,16 @@ class TensileTesterApp:
     def _refresh_ui_state(self) -> None:
         connected = self.controller.connected
         controller_state = self.controller.state
-        simulation_enabled = self.test_mode_var.get()
         running = controller_state == "running" or self.run_active
         specimen_ready = self._sync_specimen()
         run_available = bool(self.current_metadata and self.run_samples and not running)
-        port_selected = simulation_enabled or bool(self.port_var.get().strip())
+        port_selected = bool(self.port_var.get().strip())
 
         connect_state = "normal" if connected or port_selected else "disabled"
         self.connect_button.configure(text="Disconnect" if connected else "Connect", state=connect_state)
-        self.port_combo.configure(state="disabled" if connected or simulation_enabled else "readonly")
-        self.test_mode_check.configure(state="disabled" if connected else "normal")
-        self.baud_combo.configure(state="disabled" if connected or simulation_enabled else "readonly")
+        self.port_combo.configure(state="disabled" if connected else "readonly")
+        self.test_mode_check.configure(state="disabled" if connected and running else "normal")
+        self.baud_combo.configure(state="disabled" if connected else "readonly")
         self.refresh_ports_button.configure(state="disabled" if connected else "normal")
 
         ready_state = connected and controller_state not in {"running", "estop", "fault", "disconnected"}

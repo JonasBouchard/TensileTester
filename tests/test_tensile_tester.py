@@ -337,27 +337,5 @@ class ControllerTests(unittest.TestCase):
             any(event.kind == "status" and event.message == "Virtual simulation enabled." for event in events)
         )
 
-    def test_virtual_simulation_connects_without_serial_port(self) -> None:
-        controller = TesterController()
-        self.addCleanup(lambda: controller.connected and controller.disconnect())
-        controller.set_specimen_dimensions(20.0, 25.0)
-
-        controller.connect(port="", simulate=True)
-        events = wait_for_events(
-            controller,
-            lambda polled: any(event.kind == "status" and event.state == "idle" for event in polled),
-        )
-
-        self.assertTrue(any(event.kind == "status" and event.state == "idle" for event in events))
-
-        controller.start_test(10.0)
-        events = wait_for_events(
-            controller,
-            lambda polled: any(event.kind == "sample" for event in polled),
-        )
-
-        self.assertTrue(any(event.kind == "sample" for event in events))
-
-
 if __name__ == "__main__":
     unittest.main()
