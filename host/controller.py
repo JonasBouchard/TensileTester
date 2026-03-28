@@ -7,8 +7,14 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Callable, Protocol
 
+try:
+    from .debug_logging import get_app_logger
+except ImportError:
+    from debug_logging import get_app_logger
+
 
 DEFAULT_BAUD_RATE = 115200
+LOGGER = get_app_logger("controller")
 PY_SERIAL_MISSING_MESSAGE = (
     "pyserial is not installed. Install it with 'py -3 -m pip install pyserial'."
 )
@@ -283,15 +289,18 @@ def _looks_like_circuitpython_console(message: str) -> bool:
 
 class SerialTransport:
     def __init__(self, port: str, baud: int = DEFAULT_BAUD_RATE) -> None:
+        LOGGER.debug("Opening serial transport on %s at %d baud.", port, baud)
         try:
             import serial
         except ImportError as exc:
             raise RuntimeError(PY_SERIAL_MISSING_MESSAGE) from exc
 
         self._serial = serial.Serial(port=port, baudrate=baud, timeout=0.1)
+        LOGGER.info("Serial transport opened on %s at %d baud.", port, baud)
 
     def close(self) -> None:
         if self._serial.is_open:
+            LOGGER.debug("Closing serial transport on %s.", self._serial.port)
             self._serial.close()
 
     def read_line(self, timeout: float = 0.1) -> str | None:
@@ -355,12 +364,17 @@ class TesterController:
             self._specimen = None
 
     def connect(self, port: str, baud: int = DEFAULT_BAUD_RATE) -> None:
+        LOGGER.info("Connecting to %s at %d baud.", port, baud)
         with self._lock:
             if self._connected:
                 raise RuntimeError("Controller is already connected.")
 
             connection_label = port
-            transport = self._transport_factory(port, baud)
+            try:
+                transport = self._transport_factory(port, baud)
+            except Exception:
+                LOGGER.exception("Failed to open transport for %s at %d baud.", port, baud)
+                raise
 
             self._transport = transport
             self._stop_event.clear()
@@ -370,6 +384,7 @@ class TesterController:
             self._connection_label = connection_label
             self._reader_thread.start()
 
+        LOGGER.info("Connected to %s.", connection_label)
         self._push_event(TesterEvent.status("connected", f"Connected to {connection_label}."))
 
     def set_device_mode(self, test_mode: bool) -> None:
@@ -377,6 +392,7 @@ class TesterController:
         self._send_command({"cmd": "set_mode", "mode": mode})
 
     def disconnect(self) -> None:
+        LOGGER.info("Disconnect requested.")
         with self._lock:
             transport = self._transport
             reader_thread = self._reader_thread
@@ -392,6 +408,7 @@ class TesterController:
         if reader_thread is not None and reader_thread.is_alive():
             reader_thread.join(timeout=1.0)
 
+        LOGGER.info("Disconnected from tester.")
         self._push_event(TesterEvent.status("disconnected", "Disconnected from tester."))
 
     def tare_force(self) -> None:
@@ -449,17 +466,21 @@ class TesterController:
                 raise RuntimeError("Controller is not connected.")
             transport = self._transport
 
+        LOGGER.debug("Sending command: %s", command)
         transport.write_command(command)
 
     def _reader_loop(self) -> None:
+        LOGGER.debug("Reader loop started.")
         while not self._stop_event.is_set():
             transport = self._transport
             if transport is None:
+                LOGGER.debug("Reader loop stopped because transport is unavailable.")
                 return
 
             try:
                 raw_line = transport.read_line(timeout=0.1)
             except Exception as exc:
+                LOGGER.exception("Transport read failed.")
                 self._state = "fault"
                 self._push_event(TesterEvent.error("transport_error", str(exc)))
                 self._push_event(TesterEvent.status("fault", f"Transport failure: {exc}"))
@@ -468,6 +489,7 @@ class TesterController:
             if not raw_line:
                 continue
 
+            LOGGER.debug("Received device line: %s", raw_line)
             specimen = self._specimen
             event = parse_device_message(raw_line, specimen=specimen, fallback_state=self._state)
 
@@ -478,10 +500,29 @@ class TesterController:
             elif event.kind == "error":
                 self._state = "fault"
 
+            if event.kind == "status":
+                LOGGER.info(
+                    "Device status updated to %s%s",
+                    event.state or self._state,
+                    f": {event.message}" if event.message else "",
+                )
+            elif event.kind == "sample":
+                LOGGER.debug(
+                    "Sample received t=%.3f force=%.3f displacement=%.3f state=%s",
+                    event.timestamp_s or 0.0,
+                    event.force_n or 0.0,
+                    event.displacement_mm or 0.0,
+                    event.state or self._state,
+                )
+            elif event.kind == "error":
+                LOGGER.error("Device error %s: %s", event.code or "unknown", event.message)
+
             self._push_event(event)
 
             if event.kind == "error":
                 self._push_event(TesterEvent.status("fault", event.message))
+
+        LOGGER.debug("Reader loop exited.")
 
     def _push_event(self, event: TesterEvent) -> None:
         self._events.put(event)

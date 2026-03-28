@@ -1,0 +1,277 @@
+2026-03-28 00:05:45,965 INFO [MainThread] tensile_tester: Debug logging initialized.
+2026-03-28 00:05:45,965 INFO [MainThread] tensile_tester: Writing debug log to C:\Users\user\OneDrive\Bureau\Programming\TensileTester\logs\tensile_tester.log
+2026-03-28 00:05:45,965 INFO [MainThread] tensile_tester.main: Application starting. cwd=C:\Users\user\OneDrive\Bureau\Programming\TensileTester python=3.14.2 log=C:\Users\user\OneDrive\Bureau\Programming\TensileTester\logs\tensile_tester.log
+2026-03-28 00:05:45,966 INFO [MainThread] tensile_tester.gui: Launching GUI.
+2026-03-28 00:05:46,144 DEBUG [MainThread] tensile_tester.gui: Port refresh found 12 port(s): ['COM23', 'COM1', 'COM10', 'COM11', 'COM12', 'COM13', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9']
+2026-03-28 00:05:46,164 INFO [MainThread] tensile_tester.gui: GUI ready.
+2026-03-28 00:05:49,380 INFO [MainThread] tensile_tester.gui: Attempting GUI connection to COM23 at 115200 baud (simulation=False).
+2026-03-28 00:05:49,380 INFO [MainThread] tensile_tester.controller: Connecting to COM23 at 115200 baud.
+2026-03-28 00:05:49,380 DEBUG [MainThread] tensile_tester.controller: Opening serial transport on COM23 at 115200 baud.
+2026-03-28 00:05:49,382 INFO [MainThread] tensile_tester.controller: Serial transport opened on COM23 at 115200 baud.
+2026-03-28 00:05:49,383 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Reader loop started.
+2026-03-28 00:05:49,383 INFO [MainThread] tensile_tester.controller: Connected to COM23.
+2026-03-28 00:05:49,383 DEBUG [MainThread] tensile_tester.controller: Sending command: {'cmd': 'set_mode', 'mode': 'hardware'}
+2026-03-28 00:05:49,384 INFO [MainThread] tensile_tester.gui: GUI connected to COM23.
+2026-03-28 00:05:49,410 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "idle", "type": "status", "message": "Hardware mode enabled."}
+2026-03-28 00:05:49,410 INFO [Thread-1 (_reader_loop)] tensile_tester.controller: Device status updated to idle: Hardware mode enabled.
+2026-03-28 00:05:53,545 DEBUG [MainThread] tensile_tester.gui: Executing controller action: set device mode.
+2026-03-28 00:05:53,545 DEBUG [MainThread] tensile_tester.controller: Sending command: {'cmd': 'set_mode', 'mode': 'simulation'}
+2026-03-28 00:05:53,572 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "idle", "type": "status", "message": "Virtual simulation enabled."}
+2026-03-28 00:05:53,573 INFO [Thread-1 (_reader_loop)] tensile_tester.controller: Device status updated to idle: Virtual simulation enabled.
+2026-03-28 00:05:54,545 INFO [MainThread] tensile_tester.gui: Starting test for sample sample-001 at 10.000 mm/min on COM23 - CircuitPython USB Serial.
+2026-03-28 00:05:54,545 DEBUG [MainThread] tensile_tester.controller: Sending command: {'cmd': 'start_test', 'speed_mm_per_min': 10.0}
+2026-03-28 00:05:54,596 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "type": "status", "message": "Pull started at 10.000 mm/min."}
+2026-03-28 00:05:54,602 INFO [Thread-1 (_reader_loop)] tensile_tester.controller: Device status updated to running: Pull started at 10.000 mm/min.
+2026-03-28 00:05:54,625 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.0, "type": "sample", "timestamp_s": 0.0, "force_n": 0.0}
+2026-03-28 00:05:54,625 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=0.000 force=0.000 displacement=0.000 state=running
+2026-03-28 00:05:54,671 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.018, "type": "sample", "timestamp_s": 0.108, "force_n": 0.27}
+2026-03-28 00:05:54,671 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=0.108 force=0.270 displacement=0.018 state=running
+2026-03-28 00:05:54,792 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.035, "type": "sample", "timestamp_s": 0.211, "force_n": 0.527}
+2026-03-28 00:05:54,796 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=0.211 force=0.527 displacement=0.035 state=running
+2026-03-28 00:05:54,877 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.052, "type": "sample", "timestamp_s": 0.315, "force_n": 0.787}
+2026-03-28 00:05:54,878 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=0.315 force=0.787 displacement=0.052 state=running
+2026-03-28 00:05:54,986 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.069, "type": "sample", "timestamp_s": 0.417, "force_n": 1.042}
+2026-03-28 00:05:54,986 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=0.417 force=1.042 displacement=0.069 state=running
+2026-03-28 00:05:55,100 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.087, "type": "sample", "timestamp_s": 0.521, "force_n": 1.302}
+2026-03-28 00:05:55,100 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=0.521 force=1.302 displacement=0.087 state=running
+2026-03-28 00:05:55,188 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.104, "type": "sample", "timestamp_s": 0.624, "force_n": 1.56}
+2026-03-28 00:05:55,188 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=0.624 force=1.560 displacement=0.104 state=running
+2026-03-28 00:05:55,311 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.121, "type": "sample", "timestamp_s": 0.728, "force_n": 1.82}
+2026-03-28 00:05:55,312 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=0.728 force=1.820 displacement=0.121 state=running
+2026-03-28 00:05:55,394 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.139, "type": "sample", "timestamp_s": 0.831, "force_n": 2.078}
+2026-03-28 00:05:55,394 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=0.831 force=2.078 displacement=0.139 state=running
+2026-03-28 00:05:55,515 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.156, "type": "sample", "timestamp_s": 0.934, "force_n": 2.335}
+2026-03-28 00:05:55,515 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=0.934 force=2.335 displacement=0.156 state=running
+2026-03-28 00:05:55,621 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.173, "type": "sample", "timestamp_s": 1.037, "force_n": 2.593}
+2026-03-28 00:05:55,621 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=1.037 force=2.593 displacement=0.173 state=running
+2026-03-28 00:05:55,704 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.19, "type": "sample", "timestamp_s": 1.141, "force_n": 2.853}
+2026-03-28 00:05:55,704 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=1.141 force=2.853 displacement=0.190 state=running
+2026-03-28 00:05:55,822 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.207, "type": "sample", "timestamp_s": 1.244, "force_n": 3.11}
+2026-03-28 00:05:55,823 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=1.244 force=3.110 displacement=0.207 state=running
+2026-03-28 00:05:55,926 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.225, "type": "sample", "timestamp_s": 1.348, "force_n": 3.37}
+2026-03-28 00:05:55,940 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=1.348 force=3.370 displacement=0.225 state=running
+2026-03-28 00:05:56,014 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.242, "type": "sample", "timestamp_s": 1.451, "force_n": 3.628}
+2026-03-28 00:05:56,014 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=1.451 force=3.628 displacement=0.242 state=running
+2026-03-28 00:05:56,145 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.259, "type": "sample", "timestamp_s": 1.554, "force_n": 3.885}
+2026-03-28 00:05:56,152 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=1.554 force=3.885 displacement=0.259 state=running
+2026-03-28 00:05:56,221 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.276, "type": "sample", "timestamp_s": 1.657, "force_n": 4.143}
+2026-03-28 00:05:56,221 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=1.657 force=4.143 displacement=0.276 state=running
+2026-03-28 00:05:56,350 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.294, "type": "sample", "timestamp_s": 1.761, "force_n": 4.403}
+2026-03-28 00:05:56,350 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=1.761 force=4.403 displacement=0.294 state=running
+2026-03-28 00:05:56,458 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.311, "type": "sample", "timestamp_s": 1.864, "force_n": 4.661}
+2026-03-28 00:05:56,458 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=1.864 force=4.661 displacement=0.311 state=running
+2026-03-28 00:05:56,531 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.328, "type": "sample", "timestamp_s": 1.968, "force_n": 4.921}
+2026-03-28 00:05:56,531 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=1.968 force=4.921 displacement=0.328 state=running
+2026-03-28 00:05:56,649 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.345, "type": "sample", "timestamp_s": 2.071, "force_n": 5.178}
+2026-03-28 00:05:56,649 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=2.071 force=5.178 displacement=0.345 state=running
+2026-03-28 00:05:56,738 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.362, "type": "sample", "timestamp_s": 2.174, "force_n": 5.436}
+2026-03-28 00:05:56,738 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=2.174 force=5.436 displacement=0.362 state=running
+2026-03-28 00:05:56,864 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.38, "type": "sample", "timestamp_s": 2.278, "force_n": 5.696}
+2026-03-28 00:05:56,865 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=2.278 force=5.696 displacement=0.380 state=running
+2026-03-28 00:05:56,978 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.397, "type": "sample", "timestamp_s": 2.381, "force_n": 5.953}
+2026-03-28 00:05:56,981 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=2.381 force=5.953 displacement=0.397 state=running
+2026-03-28 00:05:57,048 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.414, "type": "sample", "timestamp_s": 2.485, "force_n": 6.213}
+2026-03-28 00:05:57,048 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=2.485 force=6.213 displacement=0.414 state=running
+2026-03-28 00:05:57,182 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.431, "type": "sample", "timestamp_s": 2.588, "force_n": 6.47}
+2026-03-28 00:05:57,182 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=2.588 force=6.470 displacement=0.431 state=running
+2026-03-28 00:05:57,254 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.449, "type": "sample", "timestamp_s": 2.692, "force_n": 6.73}
+2026-03-28 00:05:57,255 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=2.692 force=6.730 displacement=0.449 state=running
+2026-03-28 00:05:57,381 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.466, "type": "sample", "timestamp_s": 2.794, "force_n": 6.985}
+2026-03-28 00:05:57,381 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=2.794 force=6.985 displacement=0.466 state=running
+2026-03-28 00:05:57,461 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.483, "type": "sample", "timestamp_s": 2.898, "force_n": 7.245}
+2026-03-28 00:05:57,462 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=2.898 force=7.245 displacement=0.483 state=running
+2026-03-28 00:05:57,582 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.5, "type": "sample", "timestamp_s": 3.001, "force_n": 7.502}
+2026-03-28 00:05:57,582 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=3.001 force=7.502 displacement=0.500 state=running
+2026-03-28 00:05:57,701 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.517, "type": "sample", "timestamp_s": 3.105, "force_n": 7.762}
+2026-03-28 00:05:57,702 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=3.105 force=7.762 displacement=0.517 state=running
+2026-03-28 00:05:57,771 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.535, "type": "sample", "timestamp_s": 3.208, "force_n": 8.02}
+2026-03-28 00:05:57,771 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=3.208 force=8.020 displacement=0.535 state=running
+2026-03-28 00:05:57,887 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.552, "type": "sample", "timestamp_s": 3.312, "force_n": 8.28}
+2026-03-28 00:05:57,888 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=3.312 force=8.280 displacement=0.552 state=running
+2026-03-28 00:05:57,978 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.569, "type": "sample", "timestamp_s": 3.414, "force_n": 8.535}
+2026-03-28 00:05:57,978 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=3.414 force=8.535 displacement=0.569 state=running
+2026-03-28 00:05:58,090 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.586, "type": "sample", "timestamp_s": 3.518, "force_n": 8.795}
+2026-03-28 00:05:58,090 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=3.518 force=8.795 displacement=0.586 state=running
+2026-03-28 00:05:58,197 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.604, "type": "sample", "timestamp_s": 3.621, "force_n": 9.053}
+2026-03-28 00:05:58,197 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=3.621 force=9.053 displacement=0.604 state=running
+2026-03-28 00:05:58,288 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.621, "type": "sample", "timestamp_s": 3.725, "force_n": 9.313}
+2026-03-28 00:05:58,288 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=3.725 force=9.313 displacement=0.621 state=running
+2026-03-28 00:05:58,410 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.638, "type": "sample", "timestamp_s": 3.827, "force_n": 9.568}
+2026-03-28 00:05:58,410 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=3.827 force=9.568 displacement=0.638 state=running
+2026-03-28 00:05:58,515 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.655, "type": "sample", "timestamp_s": 3.931, "force_n": 9.828}
+2026-03-28 00:05:58,515 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=3.931 force=9.828 displacement=0.655 state=running
+2026-03-28 00:05:58,598 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.672, "type": "sample", "timestamp_s": 4.034, "force_n": 10.085}
+2026-03-28 00:05:58,598 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=4.034 force=10.085 displacement=0.672 state=running
+2026-03-28 00:05:58,702 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.69, "type": "sample", "timestamp_s": 4.138, "force_n": 10.345}
+2026-03-28 00:05:58,702 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=4.138 force=10.345 displacement=0.690 state=running
+2026-03-28 00:05:58,842 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.707, "type": "sample", "timestamp_s": 4.241, "force_n": 10.603}
+2026-03-28 00:05:58,842 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=4.241 force=10.603 displacement=0.707 state=running
+2026-03-28 00:05:58,908 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.724, "type": "sample", "timestamp_s": 4.345, "force_n": 10.863}
+2026-03-28 00:05:58,908 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=4.345 force=10.863 displacement=0.724 state=running
+2026-03-28 00:05:59,019 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.741, "type": "sample", "timestamp_s": 4.448, "force_n": 11.12}
+2026-03-28 00:05:59,027 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=4.448 force=11.120 displacement=0.741 state=running
+2026-03-28 00:05:59,116 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.759, "type": "sample", "timestamp_s": 4.551, "force_n": 11.378}
+2026-03-28 00:05:59,116 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=4.551 force=11.378 displacement=0.759 state=running
+2026-03-28 00:05:59,229 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.776, "type": "sample", "timestamp_s": 4.656, "force_n": 11.64}
+2026-03-28 00:05:59,229 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=4.656 force=11.640 displacement=0.776 state=running
+2026-03-28 00:05:59,342 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.793, "type": "sample", "timestamp_s": 4.76, "force_n": 11.9}
+2026-03-28 00:05:59,342 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=4.760 force=11.900 displacement=0.793 state=running
+2026-03-28 00:05:59,426 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.81, "type": "sample", "timestamp_s": 4.862, "force_n": 12.156}
+2026-03-28 00:05:59,426 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=4.862 force=12.156 displacement=0.810 state=running
+2026-03-28 00:05:59,534 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.828, "type": "sample", "timestamp_s": 4.966, "force_n": 12.416}
+2026-03-28 00:05:59,534 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=4.966 force=12.416 displacement=0.828 state=running
+2026-03-28 00:05:59,634 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.845, "type": "sample", "timestamp_s": 5.07, "force_n": 12.676}
+2026-03-28 00:05:59,634 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=5.070 force=12.676 displacement=0.845 state=running
+2026-03-28 00:05:59,749 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.862, "type": "sample", "timestamp_s": 5.173, "force_n": 12.933}
+2026-03-28 00:05:59,750 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=5.173 force=12.933 displacement=0.862 state=running
+2026-03-28 00:05:59,862 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.88, "type": "sample", "timestamp_s": 5.277, "force_n": 13.193}
+2026-03-28 00:05:59,862 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=5.277 force=13.193 displacement=0.880 state=running
+2026-03-28 00:05:59,944 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.897, "type": "sample", "timestamp_s": 5.38, "force_n": 13.449}
+2026-03-28 00:05:59,944 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=5.380 force=13.449 displacement=0.897 state=running
+2026-03-28 00:06:00,075 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.914, "type": "sample", "timestamp_s": 5.484, "force_n": 13.709}
+2026-03-28 00:06:00,075 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=5.484 force=13.709 displacement=0.914 state=running
+2026-03-28 00:06:00,185 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.931, "type": "sample", "timestamp_s": 5.587, "force_n": 13.967}
+2026-03-28 00:06:00,186 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=5.587 force=13.967 displacement=0.931 state=running
+2026-03-28 00:06:00,254 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.948, "type": "sample", "timestamp_s": 5.691, "force_n": 14.227}
+2026-03-28 00:06:00,254 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=5.691 force=14.227 displacement=0.948 state=running
+2026-03-28 00:06:00,359 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.966, "type": "sample", "timestamp_s": 5.794, "force_n": 14.485}
+2026-03-28 00:06:00,359 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=5.794 force=14.485 displacement=0.966 state=running
+2026-03-28 00:06:00,504 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 0.983, "type": "sample", "timestamp_s": 5.898, "force_n": 14.745}
+2026-03-28 00:06:00,506 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=5.898 force=14.745 displacement=0.983 state=running
+2026-03-28 00:06:00,564 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.0, "type": "sample", "timestamp_s": 6.001, "force_n": 15.002}
+2026-03-28 00:06:00,564 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=6.001 force=15.002 displacement=1.000 state=running
+2026-03-28 00:06:00,681 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.017, "type": "sample", "timestamp_s": 6.104, "force_n": 15.26}
+2026-03-28 00:06:00,681 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=6.104 force=15.260 displacement=1.017 state=running
+2026-03-28 00:06:00,771 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.034, "type": "sample", "timestamp_s": 6.207, "force_n": 15.517}
+2026-03-28 00:06:00,771 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=6.207 force=15.517 displacement=1.034 state=running
+2026-03-28 00:06:00,896 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.052, "type": "sample", "timestamp_s": 6.311, "force_n": 15.777}
+2026-03-28 00:06:00,897 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=6.311 force=15.777 displacement=1.052 state=running
+2026-03-28 00:06:01,027 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.069, "type": "sample", "timestamp_s": 6.414, "force_n": 16.035}
+2026-03-28 00:06:01,027 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=6.414 force=16.035 displacement=1.069 state=running
+2026-03-28 00:06:01,081 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.086, "type": "sample", "timestamp_s": 6.518, "force_n": 16.295}
+2026-03-28 00:06:01,081 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=6.518 force=16.295 displacement=1.086 state=running
+2026-03-28 00:06:01,246 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.103, "type": "sample", "timestamp_s": 6.62, "force_n": 16.55}
+2026-03-28 00:06:01,246 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=6.620 force=16.550 displacement=1.103 state=running
+2026-03-28 00:06:01,314 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.121, "type": "sample", "timestamp_s": 6.724, "force_n": 16.81}
+2026-03-28 00:06:01,314 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=6.724 force=16.810 displacement=1.121 state=running
+2026-03-28 00:06:01,440 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.138, "type": "sample", "timestamp_s": 6.827, "force_n": 17.067}
+2026-03-28 00:06:01,440 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=6.827 force=17.067 displacement=1.138 state=running
+2026-03-28 00:06:01,494 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.155, "type": "sample", "timestamp_s": 6.931, "force_n": 17.327}
+2026-03-28 00:06:01,494 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=6.931 force=17.327 displacement=1.155 state=running
+2026-03-28 00:06:01,636 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.172, "type": "sample", "timestamp_s": 7.033, "force_n": 17.583}
+2026-03-28 00:06:01,637 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=7.033 force=17.583 displacement=1.172 state=running
+2026-03-28 00:06:01,700 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.19, "type": "sample", "timestamp_s": 7.137, "force_n": 17.843}
+2026-03-28 00:06:01,700 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=7.137 force=17.843 displacement=1.190 state=running
+2026-03-28 00:06:01,816 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.207, "type": "sample", "timestamp_s": 7.24, "force_n": 18.1}
+2026-03-28 00:06:01,816 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=7.240 force=18.100 displacement=1.207 state=running
+2026-03-28 00:06:01,906 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.224, "type": "sample", "timestamp_s": 7.344, "force_n": 18.36}
+2026-03-28 00:06:01,907 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=7.344 force=18.360 displacement=1.224 state=running
+2026-03-28 00:06:02,029 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.241, "type": "sample", "timestamp_s": 7.446, "force_n": 18.615}
+2026-03-28 00:06:02,030 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=7.446 force=18.615 displacement=1.241 state=running
+2026-03-28 00:06:02,137 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.258, "type": "sample", "timestamp_s": 7.55, "force_n": 18.875}
+2026-03-28 00:06:02,137 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=7.550 force=18.875 displacement=1.258 state=running
+2026-03-28 00:06:02,216 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.276, "type": "sample", "timestamp_s": 7.653, "force_n": 19.133}
+2026-03-28 00:06:02,217 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=7.653 force=19.133 displacement=1.276 state=running
+2026-03-28 00:06:02,324 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.293, "type": "sample", "timestamp_s": 7.756, "force_n": 19.39}
+2026-03-28 00:06:02,324 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=7.756 force=19.390 displacement=1.293 state=running
+2026-03-28 00:06:02,423 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.31, "type": "sample", "timestamp_s": 7.86, "force_n": 19.65}
+2026-03-28 00:06:02,423 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=7.860 force=19.650 displacement=1.310 state=running
+2026-03-28 00:06:02,549 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.327, "type": "sample", "timestamp_s": 7.963, "force_n": 19.907}
+2026-03-28 00:06:02,549 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=7.963 force=19.907 displacement=1.327 state=running
+2026-03-28 00:06:02,666 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.344, "type": "sample", "timestamp_s": 8.067, "force_n": 20.167}
+2026-03-28 00:06:02,674 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=8.067 force=20.167 displacement=1.344 state=running
+2026-03-28 00:06:02,733 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.362, "type": "sample", "timestamp_s": 8.17, "force_n": 20.424}
+2026-03-28 00:06:02,733 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=8.170 force=20.424 displacement=1.362 state=running
+2026-03-28 00:06:02,883 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.379, "type": "sample", "timestamp_s": 8.273, "force_n": 20.682}
+2026-03-28 00:06:02,883 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=8.273 force=20.682 displacement=1.379 state=running
+2026-03-28 00:06:02,940 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.396, "type": "sample", "timestamp_s": 8.376, "force_n": 20.939}
+2026-03-28 00:06:02,940 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=8.376 force=20.939 displacement=1.396 state=running
+2026-03-28 00:06:03,053 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.413, "type": "sample", "timestamp_s": 8.48, "force_n": 21.199}
+2026-03-28 00:06:03,054 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=8.480 force=21.199 displacement=1.413 state=running
+2026-03-28 00:06:03,146 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.43, "type": "sample", "timestamp_s": 8.583, "force_n": 21.457}
+2026-03-28 00:06:03,146 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=8.583 force=21.457 displacement=1.430 state=running
+2026-03-28 00:06:03,264 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.448, "type": "sample", "timestamp_s": 8.686, "force_n": 21.714}
+2026-03-28 00:06:03,265 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=8.686 force=21.714 displacement=1.448 state=running
+2026-03-28 00:06:03,390 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.465, "type": "sample", "timestamp_s": 8.789, "force_n": 21.972}
+2026-03-28 00:06:03,393 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=8.789 force=21.972 displacement=1.465 state=running
+2026-03-28 00:06:03,456 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.482, "type": "sample", "timestamp_s": 8.893, "force_n": 22.232}
+2026-03-28 00:06:03,456 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=8.893 force=22.232 displacement=1.482 state=running
+2026-03-28 00:06:03,583 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.499, "type": "sample", "timestamp_s": 8.996, "force_n": 22.49}
+2026-03-28 00:06:03,589 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=8.996 force=22.490 displacement=1.499 state=running
+2026-03-28 00:06:03,663 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.517, "type": "sample", "timestamp_s": 9.1, "force_n": 22.75}
+2026-03-28 00:06:03,663 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=9.100 force=22.750 displacement=1.517 state=running
+2026-03-28 00:06:03,792 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.534, "type": "sample", "timestamp_s": 9.202, "force_n": 23.005}
+2026-03-28 00:06:03,792 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=9.202 force=23.005 displacement=1.534 state=running
+2026-03-28 00:06:03,903 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.551, "type": "sample", "timestamp_s": 9.306, "force_n": 23.265}
+2026-03-28 00:06:03,903 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=9.306 force=23.265 displacement=1.551 state=running
+2026-03-28 00:06:03,973 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.568, "type": "sample", "timestamp_s": 9.409, "force_n": 23.522}
+2026-03-28 00:06:03,973 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=9.409 force=23.522 displacement=1.568 state=running
+2026-03-28 00:06:04,085 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.585, "type": "sample", "timestamp_s": 9.513, "force_n": 23.782}
+2026-03-28 00:06:04,085 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=9.513 force=23.782 displacement=1.585 state=running
+2026-03-28 00:06:04,180 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.602, "type": "sample", "timestamp_s": 9.615, "force_n": 24.037}
+2026-03-28 00:06:04,180 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=9.615 force=24.037 displacement=1.602 state=running
+2026-03-28 00:06:04,313 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.62, "type": "sample", "timestamp_s": 9.72, "force_n": 24.3}
+2026-03-28 00:06:04,315 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=9.720 force=24.300 displacement=1.620 state=running
+2026-03-28 00:06:04,413 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.637, "type": "sample", "timestamp_s": 9.823, "force_n": 24.557}
+2026-03-28 00:06:04,413 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=9.823 force=24.557 displacement=1.637 state=running
+2026-03-28 00:06:04,490 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.654, "type": "sample", "timestamp_s": 9.927, "force_n": 24.817}
+2026-03-28 00:06:04,490 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=9.927 force=24.817 displacement=1.654 state=running
+2026-03-28 00:06:04,597 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.672, "type": "sample", "timestamp_s": 10.03, "force_n": 25.075}
+2026-03-28 00:06:04,597 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=10.030 force=25.075 displacement=1.672 state=running
+2026-03-28 00:06:04,697 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.689, "type": "sample", "timestamp_s": 10.134, "force_n": 25.335}
+2026-03-28 00:06:04,697 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=10.134 force=25.335 displacement=1.689 state=running
+2026-03-28 00:06:04,828 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.706, "type": "sample", "timestamp_s": 10.237, "force_n": 25.592}
+2026-03-28 00:06:04,829 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=10.237 force=25.592 displacement=1.706 state=running
+2026-03-28 00:06:04,935 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.723, "type": "sample", "timestamp_s": 10.34, "force_n": 25.85}
+2026-03-28 00:06:04,935 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=10.340 force=25.850 displacement=1.723 state=running
+2026-03-28 00:06:05,007 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.741, "type": "sample", "timestamp_s": 10.444, "force_n": 26.11}
+2026-03-28 00:06:05,007 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=10.444 force=26.110 displacement=1.741 state=running
+2026-03-28 00:06:05,122 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.758, "type": "sample", "timestamp_s": 10.547, "force_n": 26.368}
+2026-03-28 00:06:05,122 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=10.547 force=26.368 displacement=1.758 state=running
+2026-03-28 00:06:05,214 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.775, "type": "sample", "timestamp_s": 10.651, "force_n": 26.626}
+2026-03-28 00:06:05,214 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=10.651 force=26.626 displacement=1.775 state=running
+2026-03-28 00:06:05,334 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.792, "type": "sample", "timestamp_s": 10.753, "force_n": 26.881}
+2026-03-28 00:06:05,334 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=10.753 force=26.881 displacement=1.792 state=running
+2026-03-28 00:06:05,439 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.809, "type": "sample", "timestamp_s": 10.857, "force_n": 27.141}
+2026-03-28 00:06:05,439 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=10.857 force=27.141 displacement=1.809 state=running
+2026-03-28 00:06:05,523 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.827, "type": "sample", "timestamp_s": 10.96, "force_n": 27.399}
+2026-03-28 00:06:05,523 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=10.960 force=27.399 displacement=1.827 state=running
+2026-03-28 00:06:05,650 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.844, "type": "sample", "timestamp_s": 11.064, "force_n": 27.659}
+2026-03-28 00:06:05,650 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=11.064 force=27.659 displacement=1.844 state=running
+2026-03-28 00:06:05,771 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.861, "type": "sample", "timestamp_s": 11.167, "force_n": 27.916}
+2026-03-28 00:06:05,771 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=11.167 force=27.916 displacement=1.861 state=running
+2026-03-28 00:06:05,834 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.878, "type": "sample", "timestamp_s": 11.271, "force_n": 28.176}
+2026-03-28 00:06:05,834 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=11.271 force=28.176 displacement=1.878 state=running
+2026-03-28 00:06:05,952 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.895, "type": "sample", "timestamp_s": 11.373, "force_n": 28.432}
+2026-03-28 00:06:05,952 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=11.373 force=28.432 displacement=1.895 state=running
+2026-03-28 00:06:06,040 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.913, "type": "sample", "timestamp_s": 11.477, "force_n": 28.692}
+2026-03-28 00:06:06,040 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=11.477 force=28.692 displacement=1.913 state=running
+2026-03-28 00:06:06,165 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "running", "displacement_mm": 1.93, "type": "sample", "timestamp_s": 11.58, "force_n": 28.949}
+2026-03-28 00:06:06,166 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=11.580 force=28.949 displacement=1.930 state=running
+2026-03-28 00:06:06,189 DEBUG [MainThread] tensile_tester.gui: Executing controller action: stop test.
+2026-03-28 00:06:06,189 DEBUG [MainThread] tensile_tester.controller: Sending command: {'cmd': 'stop'}
+2026-03-28 00:06:06,208 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "idle", "displacement_mm": 1.94, "type": "sample", "timestamp_s": 11.643, "force_n": 29.107}
+2026-03-28 00:06:06,208 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Sample received t=11.643 force=29.107 displacement=1.940 state=idle
+2026-03-28 00:06:06,213 DEBUG [Thread-1 (_reader_loop)] tensile_tester.controller: Received device line: {"state": "idle", "type": "status", "message": "Test stopped."}
+2026-03-28 00:06:06,213 INFO [Thread-1 (_reader_loop)] tensile_tester.controller: Device status updated to idle: Test stopped.
+2026-03-28 00:06:06,316 INFO [MainThread] tensile_tester.gui: Run ended with state idle.
+2026-03-28 00:06:11,003 INFO [MainThread] tensile_tester.gui: Application close requested.
+2026-03-28 00:06:11,003 INFO [MainThread] tensile_tester.controller: Disconnect requested.
+2026-03-28 00:06:11,003 DEBUG [MainThread] tensile_tester.controller: Closing serial transport on COM23.
+2026-03-28 00:06:11,004 ERROR [Thread-1 (_reader_loop)] tensile_tester.controller: Transport read failed.
+Traceback (most recent call last):
+  File "c:\Users\user\OneDrive\Bureau\Programming\TensileTester\host\controller.py", line 481, in _reader_loop
+    raw_line = transport.read_line(timeout=0.1)
+  File "c:\Users\user\OneDrive\Bureau\Programming\TensileTester\host\controller.py", line 312, in read_line
+    self._serial.timeout = previous_timeout
+    ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\serial\serialutil.py", line 372, in timeout
+    self._reconfigure_port()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\user\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\serial\serialwin32.py", line 222, in _reconfigure_port
+    raise SerialException(
+        'Cannot configure port, something went wrong. '
+        'Original message: {!r}'.format(ctypes.WinError()))
+serial.serialutil.SerialException: Cannot configure port, something went wrong. Original message: OSError(9, 'The handle is invalid.', None, 6)
+2026-03-28 00:06:11,035 INFO [MainThread] tensile_tester.controller: Disconnected from tester.
+2026-03-28 00:06:11,142 INFO [MainThread] tensile_tester.gui: GUI main loop exited.

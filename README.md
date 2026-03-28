@@ -28,6 +28,9 @@ python host/tensile_tester.py
 - `boot.py` is required for clean USB serial communication.
 - The baud rate can be selected in the GUI.
 - `Virtual Simulation` still uses the selected board COM port. The simulation runs on the microcontroller, not on the host PC.
+- The host app writes a rotating debug log to `logs/tensile_tester.log`.
+
+  This file includes startup details, controller commands, device messages, and uncaught exceptions to help debug problems.
 
 ## Run Tests
 

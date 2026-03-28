@@ -32,10 +32,16 @@ except ImportError:
     )
     from plotting import PLOT_MODE_FORCE, PLOT_MODE_STRESS, LivePlot, create_live_plot
 
+try:
+    from .debug_logging import configure_debug_logging, get_app_logger, get_configured_log_path
+except ImportError:
+    from debug_logging import configure_debug_logging, get_app_logger, get_configured_log_path
+
 
 POLL_INTERVAL_MS = 100
 LOG_LINE_LIMIT = 300
 DEFAULT_WINDOW_SIZE = "1380x860"
+LOGGER = get_app_logger("gui")
 BAUD_RATE_OPTIONS = (
     "9600",
     "19200",
@@ -487,6 +493,11 @@ class TensileTesterApp:
     def _refresh_port_list(self) -> None:
         serial_support_error = get_serial_support_error()
         port_infos = list_serial_port_infos()
+        LOGGER.debug(
+            "Port refresh found %d port(s): %s",
+            len(port_infos),
+            [port.device for port in port_infos],
+        )
 
         self.available_ports = [port.label for port in port_infos]
         self.port_display_map = {}
@@ -511,6 +522,7 @@ class TensileTesterApp:
 
     def _toggle_connection(self) -> None:
         if self.controller.connected:
+            LOGGER.info("Disconnect requested from the GUI.")
             self.controller.disconnect()
             self._refresh_ui_state()
             return
@@ -518,16 +530,24 @@ class TensileTesterApp:
         selected_choice = self.port_var.get().strip()
         selected_port = self.port_display_map.get(selected_choice, selected_choice)
         if not selected_choice:
+            LOGGER.warning("Connect requested without selecting a port.")
             messagebox.showerror("Connect", "Choose a serial port before connecting.")
             return
 
         connected = False
         try:
             baud_rate = parse_baud_rate(self.baud_var.get())
+            LOGGER.info(
+                "Attempting GUI connection to %s at %d baud (simulation=%s).",
+                selected_port,
+                baud_rate,
+                self.test_mode_var.get(),
+            )
             self.controller.connect(port=selected_port, baud=baud_rate)
             connected = True
             self.controller.set_device_mode(self.test_mode_var.get())
         except Exception as exc:
+            LOGGER.exception("GUI connection attempt failed for %s.", selected_port)
             if connected and self.controller.connected:
                 self.controller.disconnect()
             messagebox.showerror(
@@ -536,6 +556,7 @@ class TensileTesterApp:
             )
             return
 
+        LOGGER.info("GUI connected to %s.", selected_port)
         self._append_log(f"Connected to {selected_choice}.")
         self._refresh_ui_state()
 
@@ -543,13 +564,16 @@ class TensileTesterApp:
         if not self.controller.connected:
             self._refresh_ui_state()
             return
-        self._send_controller_command(lambda: self.controller.set_device_mode(self.test_mode_var.get()))
+        self._send_controller_command(
+            "set device mode",
+            lambda: self.controller.set_device_mode(self.test_mode_var.get()),
+        )
 
     def _tare_force(self) -> None:
-        self._send_controller_command(self.controller.tare_force)
+        self._send_controller_command("tare force", self.controller.tare_force)
 
     def _zero_displacement(self) -> None:
-        self._send_controller_command(self.controller.zero_displacement)
+        self._send_controller_command("zero displacement", self.controller.zero_displacement)
 
     def _jog(self, direction: str) -> None:
         try:
@@ -560,6 +584,7 @@ class TensileTesterApp:
             return
 
         self._send_controller_command(
+            f"jog {direction}",
             lambda: self.controller.jog(
                 direction=direction,
                 distance_mm=distance_mm,
@@ -589,12 +614,19 @@ class TensileTesterApp:
         )
 
         try:
+            LOGGER.info(
+                "Starting test for sample %s at %.3f mm/min on %s.",
+                sample_id,
+                speed_mm_per_min,
+                metadata.connection_label,
+            )
             self.controller.set_specimen_dimensions(
                 area_mm2=specimen.area_mm2,
                 gauge_length_mm=specimen.gauge_length_mm,
             )
             self.controller.start_test(speed_mm_per_min)
         except Exception as exc:
+            LOGGER.exception("Failed to start test for sample %s.", sample_id)
             messagebox.showerror("Start Test", str(exc))
             return
 
@@ -608,13 +640,13 @@ class TensileTesterApp:
         self._refresh_ui_state()
 
     def _stop_test(self) -> None:
-        self._send_controller_command(self.controller.stop)
+        self._send_controller_command("stop test", self.controller.stop)
 
     def _estop(self) -> None:
         confirm = messagebox.askyesno("Emergency Stop", "Trigger emergency stop?")
         if not confirm:
             return
-        self._send_controller_command(self.controller.estop)
+        self._send_controller_command("emergency stop", self.controller.estop)
 
     def _save_run(self) -> None:
         if not self.current_metadata or not self.run_samples:
@@ -634,15 +666,19 @@ class TensileTesterApp:
         try:
             export_run_csv(target_path, self.current_metadata, self.run_samples)
         except Exception as exc:
+            LOGGER.exception("Failed to save run data to %s.", target_path)
             messagebox.showerror("Save Run", str(exc))
             return
 
+        LOGGER.info("Saved run data to %s.", target_path)
         self._append_log(f"Saved run data to {target_path}.")
 
-    def _send_controller_command(self, callback: Callable[[], None]) -> None:
+    def _send_controller_command(self, action: str, callback: Callable[[], None]) -> None:
+        LOGGER.debug("Executing controller action: %s.", action)
         try:
             callback()
         except Exception as exc:
+            LOGGER.exception("Controller action failed: %s.", action)
             messagebox.showerror("Controller Error", str(exc))
         finally:
             self._refresh_ui_state()
@@ -673,6 +709,7 @@ class TensileTesterApp:
 
             if self.run_active and event.state in {"idle", "estop", "fault", "disconnected"}:
                 self.run_active = False
+                LOGGER.info("Run ended with state %s.", event.state)
                 self._append_log(f"Run ended with state {event.state}.")
 
         elif event.kind == "sample":
@@ -765,6 +802,7 @@ class TensileTesterApp:
         self.live_plot.redraw(self.run_samples, self.plot_mode_var.get())
 
     def _handle_close(self) -> None:
+        LOGGER.info("Application close requested.")
         try:
             if self.controller.connected:
                 self.controller.disconnect()
@@ -773,7 +811,26 @@ class TensileTesterApp:
 
 
 def launch_gui() -> None:
+    log_path = configure_debug_logging()
+    LOGGER.info("Launching GUI.")
     root = tk.Tk()
+    original_report_callback_exception = root.report_callback_exception
+
+    def report_callback_exception(exc: type[BaseException], val: BaseException, tb) -> None:
+        LOGGER.critical(
+            "Unhandled Tkinter callback exception.",
+            exc_info=(exc, val, tb),
+        )
+        original_report_callback_exception(exc, val, tb)
+
+    root.report_callback_exception = report_callback_exception
     app = TensileTesterApp(root)
+    active_log_path = log_path or get_configured_log_path()
+    if active_log_path is not None:
+        app._append_log(f"Debug log file: {active_log_path}.")
+    else:
+        app._append_log("Debug log file could not be created.")
     app._append_log("Application ready.")
+    LOGGER.info("GUI ready.")
     root.mainloop()
+    LOGGER.info("GUI main loop exited.")
