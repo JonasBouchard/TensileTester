@@ -304,12 +304,18 @@ class SerialTransport:
             self._serial.close()
 
     def read_line(self, timeout: float = 0.1) -> str | None:
+        if not self._serial.is_open:
+            return None
         previous_timeout = self._serial.timeout
-        self._serial.timeout = timeout
         try:
+            self._serial.timeout = timeout
             raw_line = self._serial.readline()
         finally:
-            self._serial.timeout = previous_timeout
+            if self._serial.is_open:
+                try:
+                    self._serial.timeout = previous_timeout
+                except Exception:
+                    LOGGER.debug("Skipping timeout reset because the serial port is closing.")
 
         if not raw_line:
             return None
@@ -416,6 +422,9 @@ class TesterController:
 
     def zero_displacement(self) -> None:
         self._send_command({"cmd": "zero_displacement"})
+
+    def home(self) -> None:
+        self._send_command({"cmd": "home"})
 
     def jog(self, direction: str, distance_mm: float, speed_mm_per_min: float) -> None:
         direction_value = str(direction)

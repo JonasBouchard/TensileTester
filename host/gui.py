@@ -55,6 +55,8 @@ BAUD_RATE_OPTIONS = (
 STATE_COLORS = {
     "connected": "#1d4ed8",
     "idle": "#0f766e",
+    "homing": "#0f766e",
+    "jogging": "#b45309",
     "running": "#a16207",
     "estop": "#b91c1c",
     "fault": "#991b1b",
@@ -349,20 +351,23 @@ class TensileTesterApp:
         frame.columnconfigure(0, weight=1)
         frame.columnconfigure(1, weight=1)
 
-        self.tare_button = ttk.Button(frame, text="Tare Force", command=self._tare_force)
-        self.tare_button.grid(row=0, column=0, sticky="ew", pady=3, padx=(0, 6))
-        self.zero_button = ttk.Button(frame, text="Zero Displacement", command=self._zero_displacement)
-        self.zero_button.grid(row=0, column=1, sticky="ew", pady=3, padx=(6, 0))
+        self.home_button = ttk.Button(frame, text="Home", command=self._home)
+        self.home_button.grid(row=0, column=0, columnspan=2, sticky="ew", pady=3)
 
-        ttk.Label(frame, text="Jog Distance (mm)").grid(row=1, column=0, sticky="w", pady=(10, 3))
-        ttk.Entry(frame, textvariable=self.jog_distance_var).grid(row=2, column=0, sticky="ew", pady=3, padx=(0, 6))
-        ttk.Label(frame, text="Jog Speed (mm/min)").grid(row=1, column=1, sticky="w", pady=(10, 3))
-        ttk.Entry(frame, textvariable=self.jog_speed_var).grid(row=2, column=1, sticky="ew", pady=3, padx=(6, 0))
+        self.tare_button = ttk.Button(frame, text="Tare Force", command=self._tare_force)
+        self.tare_button.grid(row=1, column=0, sticky="ew", pady=(10, 3), padx=(0, 6))
+        self.zero_button = ttk.Button(frame, text="Zero Displacement", command=self._zero_displacement)
+        self.zero_button.grid(row=1, column=1, sticky="ew", pady=(10, 3), padx=(6, 0))
+
+        ttk.Label(frame, text="Jog Distance (mm)").grid(row=2, column=0, sticky="w", pady=(10, 3))
+        ttk.Entry(frame, textvariable=self.jog_distance_var).grid(row=3, column=0, sticky="ew", pady=3, padx=(0, 6))
+        ttk.Label(frame, text="Jog Speed (mm/min)").grid(row=2, column=1, sticky="w", pady=(10, 3))
+        ttk.Entry(frame, textvariable=self.jog_speed_var).grid(row=3, column=1, sticky="ew", pady=3, padx=(6, 0))
 
         self.jog_reverse_button = ttk.Button(frame, text="Jog -", command=lambda: self._jog("reverse"))
-        self.jog_reverse_button.grid(row=3, column=0, sticky="ew", pady=(10, 0), padx=(0, 6))
+        self.jog_reverse_button.grid(row=4, column=0, sticky="ew", pady=(10, 0), padx=(0, 6))
         self.jog_forward_button = ttk.Button(frame, text="Jog +", command=lambda: self._jog("forward"))
-        self.jog_forward_button.grid(row=3, column=1, sticky="ew", pady=(10, 0), padx=(6, 0))
+        self.jog_forward_button.grid(row=4, column=1, sticky="ew", pady=(10, 0), padx=(6, 0))
 
     def _build_run_panel(self, parent: ttk.Widget) -> None:
         frame = ttk.LabelFrame(parent, text="Run Control", style="Title.TLabelframe", padding=12)
@@ -575,6 +580,9 @@ class TensileTesterApp:
     def _zero_displacement(self) -> None:
         self._send_controller_command("zero displacement", self.controller.zero_displacement)
 
+    def _home(self) -> None:
+        self._send_controller_command("home", self.controller.home)
+
     def _jog(self, direction: str) -> None:
         try:
             distance_mm = self._parse_positive_number(self.jog_distance_var.get(), "Jog distance")
@@ -749,26 +757,27 @@ class TensileTesterApp:
     def _refresh_ui_state(self) -> None:
         connected = self.controller.connected
         controller_state = self.controller.state
-        running = controller_state == "running" or self.run_active
+        active_motion = controller_state in {"running", "homing", "jogging"} or self.run_active
         specimen_ready = self._sync_specimen()
-        run_available = bool(self.current_metadata and self.run_samples and not running)
+        run_available = bool(self.current_metadata and self.run_samples and not active_motion)
         port_selected = bool(self.port_var.get().strip())
 
         connect_state = "normal" if connected or port_selected else "disabled"
         self.connect_button.configure(text="Disconnect" if connected else "Connect", state=connect_state)
         self.port_combo.configure(state="disabled" if connected else "readonly")
-        self.test_mode_check.configure(state="disabled" if connected and running else "normal")
+        self.test_mode_check.configure(state="disabled" if connected and active_motion else "normal")
         self.baud_combo.configure(state="disabled" if connected else "readonly")
         self.refresh_ports_button.configure(state="disabled" if connected else "normal")
 
-        ready_state = connected and controller_state not in {"running", "estop", "fault", "disconnected"}
-        manual_state = "normal" if ready_state else "disabled"
-        tare_zero_state = "normal" if ready_state else "disabled"
-        start_state = "normal" if ready_state and specimen_ready and not running else "disabled"
-        stop_state = "normal" if connected and running else "disabled"
+        idle_state = connected and controller_state == "idle"
+        manual_state = "normal" if idle_state else "disabled"
+        tare_zero_state = "normal" if idle_state else "disabled"
+        start_state = "normal" if idle_state and specimen_ready and not active_motion else "disabled"
+        stop_state = "normal" if connected and active_motion else "disabled"
         estop_state = "normal" if connected else "disabled"
         save_state = "normal" if run_available else "disabled"
 
+        self.home_button.configure(state=manual_state)
         self.tare_button.configure(state=tare_zero_state)
         self.zero_button.configure(state=tare_zero_state)
         self.jog_reverse_button.configure(state=manual_state)
