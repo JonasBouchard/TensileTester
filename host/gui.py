@@ -19,6 +19,12 @@ try:
         list_serial_port_infos,
         validate_specimen_dimensions,
     )
+    from .deployment import (
+        copy_circuitpython_tree,
+        find_circuitpython_drive_candidates,
+        get_default_firmware_source_dir,
+        is_probable_circuitpython_drive,
+    )
     from .plotting import PLOT_MODE_FORCE, PLOT_MODE_STRESS, LivePlot, create_live_plot
 except ImportError:
     from controller import (
@@ -29,6 +35,12 @@ except ImportError:
         get_serial_support_error,
         list_serial_port_infos,
         validate_specimen_dimensions,
+    )
+    from deployment import (
+        copy_circuitpython_tree,
+        find_circuitpython_drive_candidates,
+        get_default_firmware_source_dir,
+        is_probable_circuitpython_drive,
     )
     from plotting import PLOT_MODE_FORCE, PLOT_MODE_STRESS, LivePlot, create_live_plot
 
@@ -159,6 +171,14 @@ def format_metric(value: float | None, precision: int = 3, fallback: str = "--")
     return f"{value:.{precision}f}"
 
 
+def mousewheel_delta_to_units(delta: int) -> int:
+    if delta == 0:
+        return 0
+
+    magnitude = max(1, abs(int(delta)) // 120) if abs(int(delta)) >= 120 else 1
+    return -magnitude if delta > 0 else magnitude
+
+
 def parse_baud_rate(raw_value: str) -> int:
     try:
         baud_rate = int(raw_value)
@@ -223,6 +243,7 @@ class TensileTesterApp:
         self.run_samples: list[RunSample] = []
         self.run_active = False
         self._log_lines: list[str] = []
+        self._left_panel_window_id: int | None = None
 
         self.root.title("Tensile Tester")
         self.root.geometry(DEFAULT_WINDOW_SIZE)
@@ -232,6 +253,7 @@ class TensileTesterApp:
 
         self._configure_style()
         self._build_layout()
+        self._bind_scroll_behaviors()
         self._refresh_port_list()
         self._bind_validation()
         self._sync_specimen()
@@ -258,7 +280,7 @@ class TensileTesterApp:
         connection_frame = ttk.Frame(self.root, padding=(14, 14, 14, 10))
         connection_frame.grid(row=0, column=0, sticky="ew")
         connection_frame.columnconfigure(1, weight=1)
-        connection_frame.columnconfigure(7, weight=1)
+        connection_frame.columnconfigure(8, weight=1)
 
         ttk.Label(connection_frame, text="Connection").grid(row=0, column=0, sticky="w", padx=(0, 8))
         self.port_combo = ttk.Combobox(connection_frame, textvariable=self.port_var, state="readonly", width=34)
@@ -269,16 +291,22 @@ class TensileTesterApp:
             column=2,
             padx=(8, 0),
         )
+        self.update_board_files_button = ttk.Button(
+            connection_frame,
+            text="Update Board Files",
+            command=self._update_board_files,
+        )
+        self.update_board_files_button.grid(row=0, column=3, padx=(8, 0))
         self.connect_button = ttk.Button(connection_frame, text="Connect", command=self._toggle_connection)
-        self.connect_button.grid(row=0, column=3, padx=(8, 0))
+        self.connect_button.grid(row=0, column=4, padx=(8, 0))
         self.test_mode_check = ttk.Checkbutton(
             connection_frame,
             text="Virtual Simulation",
             variable=self.test_mode_var,
             command=self._handle_test_mode_change,
         )
-        self.test_mode_check.grid(row=0, column=4, padx=(12, 0), sticky="w")
-        ttk.Label(connection_frame, text="Baud").grid(row=0, column=5, padx=(14, 4), sticky="e")
+        self.test_mode_check.grid(row=0, column=5, padx=(12, 0), sticky="w")
+        ttk.Label(connection_frame, text="Baud").grid(row=0, column=6, padx=(14, 4), sticky="e")
         self.baud_combo = ttk.Combobox(
             connection_frame,
             textvariable=self.baud_var,
@@ -286,7 +314,7 @@ class TensileTesterApp:
             values=BAUD_RATE_OPTIONS,
             width=10,
         )
-        self.baud_combo.grid(row=0, column=6, sticky="w")
+        self.baud_combo.grid(row=0, column=7, sticky="w")
         self.state_indicator = tk.Label(
             connection_frame,
             textvariable=self.state_text_var,
@@ -297,33 +325,61 @@ class TensileTesterApp:
             padx=10,
             pady=6,
         )
-        self.state_indicator.grid(row=0, column=7, sticky="e", padx=(14, 0))
+        self.state_indicator.grid(row=0, column=8, sticky="e", padx=(14, 0))
         ttk.Label(connection_frame, textvariable=self.connection_message_var).grid(
             row=1,
             column=0,
-            columnspan=8,
+            columnspan=9,
             sticky="w",
             pady=(8, 0),
         )
 
         content = ttk.Frame(self.root, padding=(14, 0, 14, 14))
         content.grid(row=1, column=0, sticky="nsew")
-        content.columnconfigure(0, weight=0)
-        content.columnconfigure(1, weight=1)
+        content.columnconfigure(0, weight=2, minsize=380)
+        content.columnconfigure(1, weight=3, minsize=480)
         content.rowconfigure(0, weight=1)
 
-        left_panel = ttk.Frame(content)
-        left_panel.grid(row=0, column=0, sticky="nsw", padx=(0, 14))
+        left_container = ttk.Frame(content)
+        left_container.grid(row=0, column=0, sticky="nsew", padx=(0, 14))
+        left_container.columnconfigure(0, weight=1)
+        left_container.rowconfigure(0, weight=1)
+
+        self.left_scroll_canvas = tk.Canvas(
+            left_container,
+            highlightthickness=0,
+            borderwidth=0,
+            background=self.root.cget("bg"),
+        )
+        self.left_scroll_canvas.grid(row=0, column=0, sticky="nsew")
+        self.left_scrollbar = ttk.Scrollbar(
+            left_container,
+            orient="vertical",
+            command=self.left_scroll_canvas.yview,
+        )
+        self.left_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.left_scroll_canvas.configure(yscrollcommand=self.left_scrollbar.set)
+
+        self.left_panel = ttk.Frame(self.left_scroll_canvas)
+        self.left_panel.columnconfigure(0, weight=1)
+        self._left_panel_window_id = self.left_scroll_canvas.create_window(
+            (0, 0),
+            window=self.left_panel,
+            anchor="nw",
+        )
+        self.left_panel.bind("<Configure>", self._handle_left_panel_configure)
+        self.left_scroll_canvas.bind("<Configure>", self._handle_left_canvas_configure)
+
         right_panel = ttk.Frame(content)
         right_panel.grid(row=0, column=1, sticky="nsew")
         right_panel.columnconfigure(0, weight=1)
         right_panel.rowconfigure(1, weight=1)
 
-        self._build_specimen_panel(left_panel)
-        self._build_manual_panel(left_panel)
-        self._build_run_panel(left_panel)
-        self._build_metrics_panel(left_panel)
-        self._build_log_panel(left_panel)
+        self._build_specimen_panel(self.left_panel)
+        self._build_manual_panel(self.left_panel)
+        self._build_run_panel(self.left_panel)
+        self._build_metrics_panel(self.left_panel)
+        self._build_log_panel(self.left_panel)
         self._build_plot_panel(right_panel)
 
     def _build_specimen_panel(self, parent: ttk.Widget) -> None:
@@ -425,15 +481,69 @@ class TensileTesterApp:
     def _build_log_panel(self, parent: ttk.Widget) -> None:
         frame = ttk.LabelFrame(parent, text="Event Log", style="Title.TLabelframe", padding=12)
         frame.grid(row=4, column=0, sticky="nsew", pady=(14, 0))
-        parent.rowconfigure(4, weight=1)
+        parent.rowconfigure(4, weight=1, minsize=180)
         frame.columnconfigure(0, weight=1)
-        frame.rowconfigure(0, weight=1)
+        frame.rowconfigure(0, weight=1, minsize=140)
 
-        self.log_widget = tk.Text(frame, width=42, height=12, wrap="word", state="disabled")
+        self.log_widget = tk.Text(frame, height=8, wrap="word", state="disabled")
         self.log_widget.grid(row=0, column=0, sticky="nsew")
         log_scrollbar = ttk.Scrollbar(frame, orient="vertical", command=self.log_widget.yview)
         log_scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_widget.configure(yscrollcommand=log_scrollbar.set)
+
+    def _bind_scroll_behaviors(self) -> None:
+        self.root.bind_all("<MouseWheel>", self._handle_global_mousewheel, add="+")
+        self.root.bind_all("<Button-4>", self._handle_global_mousewheel, add="+")
+        self.root.bind_all("<Button-5>", self._handle_global_mousewheel, add="+")
+
+    def _handle_left_panel_configure(self, _event: tk.Event) -> None:
+        self.left_scroll_canvas.configure(scrollregion=self.left_scroll_canvas.bbox("all"))
+
+    def _handle_left_canvas_configure(self, event: tk.Event) -> None:
+        if self._left_panel_window_id is None:
+            return
+        self.left_scroll_canvas.itemconfigure(self._left_panel_window_id, width=event.width)
+
+    def _handle_global_mousewheel(self, event: tk.Event) -> str | None:
+        try:
+            target_widget = self.root.winfo_containing(
+                self.root.winfo_pointerx(),
+                self.root.winfo_pointery(),
+            )
+        except (KeyError, tk.TclError):
+            return None
+        if target_widget is None or not self._is_left_panel_widget(target_widget):
+            return None
+
+        if getattr(event, "num", None) == 4:
+            units = -1
+        elif getattr(event, "num", None) == 5:
+            units = 1
+        else:
+            units = mousewheel_delta_to_units(int(getattr(event, "delta", 0)))
+
+        if units == 0:
+            return None
+
+        self.left_scroll_canvas.yview_scroll(units, "units")
+        return "break"
+
+    def _is_left_panel_widget(self, widget: tk.Misc) -> bool:
+        current: tk.Misc | None = widget
+        while current is not None:
+            if current is self.left_panel or current is self.left_scroll_canvas or current is self.left_scrollbar:
+                return True
+            try:
+                parent_name = current.winfo_parent()
+            except tk.TclError:
+                return False
+            if not parent_name:
+                return False
+            try:
+                current = current.nametowidget(parent_name)
+            except (KeyError, tk.TclError):
+                return False
+        return False
 
     def _build_plot_panel(self, parent: ttk.Widget) -> None:
         controls = ttk.Frame(parent)
@@ -681,6 +791,73 @@ class TensileTesterApp:
         LOGGER.info("Saved run data to %s.", target_path)
         self._append_log(f"Saved run data to {target_path}.")
 
+    def _update_board_files(self) -> None:
+        try:
+            source_dir = get_default_firmware_source_dir()
+        except Exception as exc:
+            LOGGER.exception("Failed to resolve the CircuitPython source directory.")
+            messagebox.showerror("Update Board Files", str(exc))
+            return
+
+        if self.controller.connected:
+            should_disconnect = messagebox.askyesno(
+                "Update Board Files",
+                "Updating code.py or boot.py will restart the board.\n\nDisconnect and continue?",
+            )
+            if not should_disconnect:
+                return
+
+            LOGGER.info("Disconnecting before deploying CircuitPython files.")
+            self.controller.disconnect()
+            self._refresh_ui_state()
+
+        target_dir = self._select_board_files_target()
+        if target_dir is None:
+            return
+
+        if not is_probable_circuitpython_drive(target_dir):
+            confirm_copy = messagebox.askyesno(
+                "Update Board Files",
+                f"{target_dir} does not look like a CIRCUITPY drive.\n\nCopy the files there anyway?",
+            )
+            if not confirm_copy:
+                return
+
+        try:
+            result = copy_circuitpython_tree(source_dir, target_dir)
+        except Exception as exc:
+            LOGGER.exception("Failed to deploy CircuitPython files to %s.", target_dir)
+            messagebox.showerror("Update Board Files", str(exc))
+            return
+
+        summary = f"Copied {result.file_count} file(s) to {result.destination_dir}."
+        LOGGER.info(summary)
+        self.connection_message_var.set(summary)
+        self._append_log(summary)
+        self._append_log("Press reset once if the board does not reload automatically after boot.py changes.")
+        messagebox.showinfo(
+            "Update Board Files",
+            f"{summary}\n\nPress reset once if the board does not reload automatically.",
+        )
+        self._refresh_port_list()
+        self._refresh_ui_state()
+
+    def _select_board_files_target(self) -> Path | None:
+        candidates = find_circuitpython_drive_candidates()
+        if len(candidates) == 1:
+            return candidates[0]
+
+        initial_dir = str(candidates[0]) if candidates else str(Path.home())
+        selected_dir = filedialog.askdirectory(
+            title="Select the CIRCUITPY drive",
+            initialdir=initial_dir,
+            mustexist=True,
+        )
+        if not selected_dir:
+            return None
+
+        return Path(selected_dir)
+
     def _send_controller_command(self, action: str, callback: Callable[[], None]) -> None:
         LOGGER.debug("Executing controller action: %s.", action)
         try:
@@ -768,6 +945,7 @@ class TensileTesterApp:
         self.test_mode_check.configure(state="disabled" if connected and active_motion else "normal")
         self.baud_combo.configure(state="disabled" if connected else "readonly")
         self.refresh_ports_button.configure(state="disabled" if connected else "normal")
+        self.update_board_files_button.configure(state="disabled" if active_motion else "normal")
 
         idle_state = connected and controller_state == "idle"
         manual_state = "normal" if idle_state else "disabled"

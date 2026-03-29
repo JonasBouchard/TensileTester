@@ -306,11 +306,20 @@ class DigitalLimitSwitch:
 
 
 class AS5600Sensor:
-    def __init__(self, i2c, address: int = 0x36) -> None:
+    def __init__(
+        self,
+        i2c,
+        address: int = 0x36,
+        *,
+        lock_timeout_s: float = 0.5,
+        lock_poll_s: float = 0.001,
+    ) -> None:
         self._i2c = i2c
         self._address = address
         self._register = bytearray(1)
         self._buffer = bytearray(2)
+        self._lock_timeout_s = max(0.0, float(lock_timeout_s))
+        self._lock_poll_s = max(0.0, float(lock_poll_s))
 
     def magnet_detected(self) -> bool:
         status = self._read_register_8(AS5600_STATUS_REGISTER)
@@ -320,11 +329,16 @@ class AS5600Sensor:
         self._register[0] = AS5600_RAW_ANGLE_REGISTER
         self._lock()
         try:
-            self._i2c.writeto_then_readfrom(
-                self._address,
-                self._register,
-                self._buffer,
-            )
+            try:
+                self._i2c.writeto_then_readfrom(
+                    self._address,
+                    self._register,
+                    self._buffer,
+                )
+            except OSError as exc:
+                raise RuntimeError(
+                    "AS5600 angle read failed on I2C address 0x%02X." % self._address
+                ) from exc
         finally:
             self._unlock()
         return ((self._buffer[0] << 8) | self._buffer[1]) & 0x0FFF
@@ -333,19 +347,32 @@ class AS5600Sensor:
         self._register[0] = register & 0xFF
         self._lock()
         try:
-            self._i2c.writeto_then_readfrom(
-                self._address,
-                self._register,
-                self._buffer,
-                in_end=1,
-            )
+            try:
+                self._i2c.writeto_then_readfrom(
+                    self._address,
+                    self._register,
+                    self._buffer,
+                    in_end=1,
+                )
+            except OSError as exc:
+                raise RuntimeError(
+                    "AS5600 register 0x%02X read failed on I2C address 0x%02X."
+                    % (register & 0xFF, self._address)
+                ) from exc
         finally:
             self._unlock()
         return self._buffer[0]
 
     def _lock(self) -> None:
+        deadline = time.monotonic() + self._lock_timeout_s
         while not self._i2c.try_lock():
-            pass
+            if time.monotonic() >= deadline:
+                raise RuntimeError(
+                    "Timed out waiting for the AS5600 I2C bus lock on address 0x%02X."
+                    % self._address
+                )
+            if self._lock_poll_s > 0.0:
+                time.sleep(self._lock_poll_s)
 
     def _unlock(self) -> None:
         self._i2c.unlock()

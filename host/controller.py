@@ -295,27 +295,27 @@ class SerialTransport:
         except ImportError as exc:
             raise RuntimeError(PY_SERIAL_MISSING_MESSAGE) from exc
 
-        self._serial = serial.Serial(port=port, baudrate=baud, timeout=0.1)
+        self._io_lock = threading.Lock()
+        self._serial = serial.Serial(
+            port=port,
+            baudrate=baud,
+            timeout=0.1,
+            write_timeout=1.0,
+        )
         LOGGER.info("Serial transport opened on %s at %d baud.", port, baud)
 
     def close(self) -> None:
-        if self._serial.is_open:
-            LOGGER.debug("Closing serial transport on %s.", self._serial.port)
-            self._serial.close()
+        with self._io_lock:
+            if self._serial.is_open:
+                LOGGER.debug("Closing serial transport on %s.", self._serial.port)
+                self._serial.close()
 
     def read_line(self, timeout: float = 0.1) -> str | None:
-        if not self._serial.is_open:
-            return None
-        previous_timeout = self._serial.timeout
-        try:
-            self._serial.timeout = timeout
+        _ = timeout
+        with self._io_lock:
+            if not self._serial.is_open:
+                return None
             raw_line = self._serial.readline()
-        finally:
-            if self._serial.is_open:
-                try:
-                    self._serial.timeout = previous_timeout
-                except Exception:
-                    LOGGER.debug("Skipping timeout reset because the serial port is closing.")
 
         if not raw_line:
             return None
@@ -323,8 +323,11 @@ class SerialTransport:
 
     def write_command(self, command: dict[str, Any]) -> None:
         line = json.dumps(command) + "\n"
-        self._serial.write(line.encode("utf-8"))
-        self._serial.flush()
+        with self._io_lock:
+            if not self._serial.is_open:
+                raise RuntimeError("Serial port is closed.")
+            self._serial.write(line.encode("utf-8"))
+            self._serial.flush()
 
 
 class TesterController:

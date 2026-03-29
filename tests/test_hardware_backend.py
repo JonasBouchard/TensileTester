@@ -4,6 +4,7 @@ import time
 import unittest
 
 from circuitpython.hardware import (
+    AS5600Sensor,
     AxisConfig,
     AxisDevices,
     DriverConfig,
@@ -103,6 +104,14 @@ class FakeLoadCell:
         return max(0.0, average_mm * 10.0)
 
 
+class LockedI2CBus:
+    def try_lock(self) -> bool:
+        return False
+
+    def unlock(self) -> None:
+        raise AssertionError("unlock should not be called when the lock is never acquired")
+
+
 def build_settings() -> HardwareConfig:
     return HardwareConfig(
         sample_interval_s=0.05,
@@ -178,6 +187,12 @@ class HardwareMathTests(unittest.TestCase):
         self.assertEqual(calculate_steps_per_mm(200, 16, 8.0), 400.0)
         self.assertEqual(unwrap_encoder_step(4090, 4), 10)
         self.assertAlmostEqual(counts_to_newtons(1200.0, 200.0, 1000.0), 1.0)
+
+    def test_as5600_sensor_times_out_when_i2c_lock_never_arrives(self) -> None:
+        sensor = AS5600Sensor(LockedI2CBus(), lock_timeout_s=0.01, lock_poll_s=0.0)
+
+        with self.assertRaisesRegex(RuntimeError, "Timed out waiting for the AS5600 I2C bus lock"):
+            sensor.magnet_detected()
 
 
 class HardwareBackendTests(unittest.TestCase):

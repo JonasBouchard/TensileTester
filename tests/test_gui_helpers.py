@@ -11,6 +11,7 @@ from host.gui import (
     build_run_filename,
     export_run_csv,
     format_connection_error,
+    mousewheel_delta_to_units,
     parse_baud_rate,
     sanitize_filename_component,
     validate_specimen_inputs,
@@ -37,6 +38,13 @@ class GuiHelperTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             parse_baud_rate("0")
+
+    def test_mousewheel_delta_to_units_normalizes_small_and_large_steps(self) -> None:
+        self.assertEqual(mousewheel_delta_to_units(120), -1)
+        self.assertEqual(mousewheel_delta_to_units(-120), 1)
+        self.assertEqual(mousewheel_delta_to_units(240), -2)
+        self.assertEqual(mousewheel_delta_to_units(-1), 1)
+        self.assertEqual(mousewheel_delta_to_units(0), 0)
 
     def test_format_connection_error_expands_linux_permission_denied(self) -> None:
         message = format_connection_error(

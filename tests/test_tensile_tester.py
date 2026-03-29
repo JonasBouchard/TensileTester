@@ -410,6 +410,18 @@ class ControllerTests(unittest.TestCase):
         self.assertTrue(any(event.kind == "status" and event.state == "homing" for event in events))
         self.assertTrue(any(event.kind == "status" and event.message == "Homing complete." for event in events))
 
+    def test_jog_command_emits_jogging_then_idle(self) -> None:
+        self.connect_ready_controller()
+
+        self.controller.jog(direction="forward", distance_mm=1.0, speed_mm_per_min=60.0)
+        events = wait_for_events(
+            self.controller,
+            lambda items: any(event.kind == "status" and event.message == "Jog complete." for event in items),
+        )
+
+        self.assertTrue(any(event.kind == "status" and event.state == "jogging" for event in events))
+        self.assertTrue(any(event.kind == "status" and event.message == "Jog complete." for event in events))
+
     def test_stop_during_homing_returns_to_idle(self) -> None:
         self.connect_ready_controller()
 

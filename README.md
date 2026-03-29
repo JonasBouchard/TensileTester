@@ -13,15 +13,16 @@ Simple host GUI plus CircuitPython firmware for a benchtop tensile tester.
 
 1. Copy everything from `circuitpython/` to the `CIRCUITPY` drive.
 2. Reset the board after copying the files.
-3. Run the host program:
+3. You can also launch the host app and click `Update Board Files` to copy every file from `circuitpython/` to the mounted board.
+4. Run the host program:
 
 ```bash
 python host/tensile_tester.py
 ```
 
-4. In the GUI, choose the board COM port.
-5. Turn on `Virtual Simulation` if you want the microcontroller to generate simulated data.
-6. Leave `Virtual Simulation` off if you want the microcontroller to use the hardware backend.
+5. In the GUI, choose the board COM port.
+6. Turn on `Virtual Simulation` if you want the microcontroller to generate simulated data.
+7. Leave `Virtual Simulation` off if you want the microcontroller to use the hardware backend.
 
 ## Notes
 
