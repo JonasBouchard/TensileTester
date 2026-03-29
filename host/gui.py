@@ -490,6 +490,9 @@ class TensileTesterApp:
         log_scrollbar = ttk.Scrollbar(frame, orient="vertical", command=self.log_widget.yview)
         log_scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_widget.configure(yscrollcommand=log_scrollbar.set)
+        self.log_widget.bind("<MouseWheel>", self._handle_log_mousewheel, add="+")
+        self.log_widget.bind("<Button-4>", self._handle_log_mousewheel, add="+")
+        self.log_widget.bind("<Button-5>", self._handle_log_mousewheel, add="+")
 
     def _bind_scroll_behaviors(self) -> None:
         self.root.bind_all("<MouseWheel>", self._handle_global_mousewheel, add="+")
@@ -526,6 +529,18 @@ class TensileTesterApp:
             return None
 
         self.left_scroll_canvas.yview_scroll(units, "units")
+        return "break"
+
+    def _handle_log_mousewheel(self, event: tk.Event) -> str:
+        if getattr(event, "num", None) == 4:
+            units = -1
+        elif getattr(event, "num", None) == 5:
+            units = 1
+        else:
+            units = mousewheel_delta_to_units(int(getattr(event, "delta", 0)))
+
+        if units != 0:
+            self.log_widget.yview_scroll(units, "units")
         return "break"
 
     def _is_left_panel_widget(self, widget: tk.Misc) -> bool:

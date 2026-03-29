@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass
 import math
 import time
-from typing import Protocol
+
+try:
+    from typing import Protocol
+except (ImportError, AttributeError):
+    class Protocol:
+        pass
 
 
 AS5600_RAW_ANGLE_REGISTER = 0x0C
@@ -141,85 +145,139 @@ class DriverInterface(Protocol):
         ...
 
 
-@dataclass(frozen=True)
 class AxisConfig:
-    name: str
-    step_pin: str
-    dir_pin: str
-    enable_pin: str
-    uart_pin: str
-    home_switch_pin: str
-    encoder_scl_pin: str
-    encoder_sda_pin: str
-    run_current_a: float
-    hold_current_a: float
-    home_direction: int = -1
+    def __init__(
+        self,
+        name: str,
+        step_pin: str,
+        dir_pin: str,
+        enable_pin: str,
+        uart_pin: str,
+        home_switch_pin: str,
+        encoder_scl_pin: str,
+        encoder_sda_pin: str,
+        run_current_a: float,
+        hold_current_a: float,
+        home_direction: int = -1,
+    ) -> None:
+        self.name = name
+        self.step_pin = step_pin
+        self.dir_pin = dir_pin
+        self.enable_pin = enable_pin
+        self.uart_pin = uart_pin
+        self.home_switch_pin = home_switch_pin
+        self.encoder_scl_pin = encoder_scl_pin
+        self.encoder_sda_pin = encoder_sda_pin
+        self.run_current_a = run_current_a
+        self.hold_current_a = hold_current_a
+        self.home_direction = home_direction
 
 
-@dataclass(frozen=True)
 class MechanicalConfig:
-    lead_mm_per_rev: float
-    full_steps_per_rev: int
-    microsteps: int
-    encoder_counts_per_rev: int
-    encoder_slip_tolerance_mm: float
+    def __init__(
+        self,
+        lead_mm_per_rev: float,
+        full_steps_per_rev: int,
+        microsteps: int,
+        encoder_counts_per_rev: int,
+        encoder_slip_tolerance_mm: float,
+    ) -> None:
+        self.lead_mm_per_rev = lead_mm_per_rev
+        self.full_steps_per_rev = full_steps_per_rev
+        self.microsteps = microsteps
+        self.encoder_counts_per_rev = encoder_counts_per_rev
+        self.encoder_slip_tolerance_mm = encoder_slip_tolerance_mm
 
 
-@dataclass(frozen=True)
 class HomingConfig:
-    fast_speed_mm_per_min: float
-    slow_speed_mm_per_min: float
-    backoff_mm: float
-    timeout_s: float
+    def __init__(
+        self,
+        fast_speed_mm_per_min: float,
+        slow_speed_mm_per_min: float,
+        backoff_mm: float,
+        timeout_s: float,
+    ) -> None:
+        self.fast_speed_mm_per_min = fast_speed_mm_per_min
+        self.slow_speed_mm_per_min = slow_speed_mm_per_min
+        self.backoff_mm = backoff_mm
+        self.timeout_s = timeout_s
 
 
-@dataclass(frozen=True)
 class LoadCellConfig:
-    data_pin: str
-    clock_pin: str
-    counts_per_newton: float
-    average_samples: int
-    tare_samples: int
+    def __init__(
+        self,
+        data_pin: str,
+        clock_pin: str,
+        counts_per_newton: float,
+        average_samples: int,
+        tare_samples: int,
+    ) -> None:
+        self.data_pin = data_pin
+        self.clock_pin = clock_pin
+        self.counts_per_newton = counts_per_newton
+        self.average_samples = average_samples
+        self.tare_samples = tare_samples
 
 
-@dataclass(frozen=True)
 class SwitchConfig:
-    active_low: bool
-    pull_up: bool
+    def __init__(self, active_low: bool, pull_up: bool) -> None:
+        self.active_low = active_low
+        self.pull_up = pull_up
 
 
-@dataclass(frozen=True)
 class DriverConfig:
-    baudrate: int
-    interpolate: bool
-    sense_resistor_ohms: float
+    def __init__(self, baudrate: int, interpolate: bool, sense_resistor_ohms: float) -> None:
+        self.baudrate = baudrate
+        self.interpolate = interpolate
+        self.sense_resistor_ohms = sense_resistor_ohms
 
 
-@dataclass(frozen=True)
 class HardwareConfig:
-    sample_interval_s: float
-    step_pulse_s: float
-    axes: tuple[AxisConfig, AxisConfig]
-    mechanics: MechanicalConfig
-    homing: HomingConfig
-    load_cell: LoadCellConfig
-    switches: SwitchConfig
-    driver: DriverConfig
+    def __init__(
+        self,
+        sample_interval_s: float,
+        step_pulse_s: float,
+        axes: tuple[AxisConfig, AxisConfig],
+        mechanics: MechanicalConfig,
+        homing: HomingConfig,
+        load_cell: LoadCellConfig,
+        switches: SwitchConfig,
+        driver: DriverConfig,
+    ) -> None:
+        self.sample_interval_s = sample_interval_s
+        self.step_pulse_s = step_pulse_s
+        self.axes = axes
+        self.mechanics = mechanics
+        self.homing = homing
+        self.load_cell = load_cell
+        self.switches = switches
+        self.driver = driver
 
 
-@dataclass(frozen=True)
 class AxisDevices:
-    config: AxisConfig
-    motor: StepperMotorInterface
-    encoder: EncoderInterface
-    home_switch: LimitSwitchInterface
-    driver: DriverInterface | None = None
+    def __init__(
+        self,
+        config: AxisConfig,
+        motor: StepperMotorInterface,
+        encoder: EncoderInterface,
+        home_switch: LimitSwitchInterface,
+        driver: DriverInterface | None = None,
+    ) -> None:
+        self.config = config
+        self.motor = motor
+        self.encoder = encoder
+        self.home_switch = home_switch
+        self.driver = driver
 
 
-@dataclass(frozen=True)
 class HardwareDevices:
-    axes: tuple[AxisDevices, AxisDevices]
-    load_cell: LoadCellInterface
+    def __init__(
+        self,
+        axes: tuple[AxisDevices, AxisDevices],
+        load_cell: LoadCellInterface,
+    ) -> None:
+        self.axes = axes
+        self.load_cell = load_cell
 
 
 class EncoderTracker:
@@ -672,17 +730,28 @@ def create_default_hardware_devices(settings: HardwareConfig) -> HardwareDevices
     )
 
 
-@dataclass
 class AxisRuntime:
-    devices: AxisDevices
-    tracker: EncoderTracker
-    steps_per_mm: float
-    expected_steps: int = 0
-    home_phase: str = "done"
-    step_budget: float = 0.0
-    backoff_remaining_steps: int = 0
-    switch_pressed: bool = False
-    magnet_detected: bool = True
+    def __init__(
+        self,
+        devices: AxisDevices,
+        tracker: EncoderTracker,
+        steps_per_mm: float,
+        expected_steps: int = 0,
+        home_phase: str = "done",
+        step_budget: float = 0.0,
+        backoff_remaining_steps: int = 0,
+        switch_pressed: bool = False,
+        magnet_detected: bool = True,
+    ) -> None:
+        self.devices = devices
+        self.tracker = tracker
+        self.steps_per_mm = steps_per_mm
+        self.expected_steps = expected_steps
+        self.home_phase = home_phase
+        self.step_budget = step_budget
+        self.backoff_remaining_steps = backoff_remaining_steps
+        self.switch_pressed = switch_pressed
+        self.magnet_detected = magnet_detected
 
     @property
     def expected_mm(self) -> float:
