@@ -12,6 +12,7 @@ from circuitpython.hardware import (
     AxisConfig,
     AxisDevices,
     DigitalStepperMotor,
+    EncoderTracker,
     DriverConfig,
     HardwareConfig,
     HardwareDevices,
@@ -153,6 +154,7 @@ def build_backend(
     right_encoder_scale: float = 1.0,
     left_magnet_detected: bool = True,
     right_magnet_detected: bool = True,
+    load_cell=None,
 ) -> tuple[HardwareTesterBackend, list[FakeAxisRig]]:
     settings = build_settings()
     steps_per_mm = calculate_steps_per_mm(
@@ -183,7 +185,7 @@ def build_backend(
             AxisDevices(settings.axes[0], rigs[0].motor, rigs[0].encoder, rigs[0].switch, rigs[0].driver),
             AxisDevices(settings.axes[1], rigs[1].motor, rigs[1].encoder, rigs[1].switch, rigs[1].driver),
         ),
-        load_cell=FakeLoadCell(rigs),
+        load_cell=load_cell if load_cell is not None else FakeLoadCell(rigs),
     )
     return HardwareTesterBackend(settings=settings, devices=devices), rigs
 
@@ -199,6 +201,14 @@ class HardwareMathTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "Timed out waiting for the AS5600 I2C bus lock"):
             sensor.magnet_detected()
+
+    def test_encoder_tracker_can_invert_reported_direction(self) -> None:
+        tracker = EncoderTracker(counts_per_rev=4096, lead_mm_per_rev=8.0, inverted=True)
+
+        tracker.update(0)
+        tracker.update(256)
+
+        self.assertEqual(tracker.relative_counts, -256)
 
     def test_default_hardware_devices_support_positional_only_circuitpython_apis(self) -> None:
         settings = hardware_module.build_default_config()
@@ -545,6 +555,8 @@ class HardwareMathTests(unittest.TestCase):
         config_module.RIGHT_HOME_DIRECTION = -1
         config_module.MOTOR_A_DIRECTION_INVERTED = True
         config_module.MOTOR_B_DIRECTION_INVERTED = False
+        config_module.LEFT_ENCODER_INVERTED = True
+        config_module.RIGHT_ENCODER_INVERTED = False
 
         with patch.dict(sys.modules, {"config": config_module}):
             settings = hardware_module.build_default_config()
@@ -553,6 +565,8 @@ class HardwareMathTests(unittest.TestCase):
         self.assertEqual(settings.axes[1].home_direction, -1)
         self.assertTrue(settings.axes[0].direction_inverted)
         self.assertFalse(settings.axes[1].direction_inverted)
+        self.assertTrue(settings.axes[0].encoder_inverted)
+        self.assertFalse(settings.axes[1].encoder_inverted)
         self.assertFalse(settings.axes[0].home_switch_active_low)
         self.assertTrue(settings.axes[1].home_switch_active_low)
         self.assertFalse(settings.axes[0].home_switch_pull_up)
@@ -584,6 +598,32 @@ class HardwareMathTests(unittest.TestCase):
 
 
 class HardwareBackendTests(unittest.TestCase):
+    def test_idle_poll_emits_samples_for_live_metrics(self) -> None:
+        backend, _ = build_backend()
+        now = time.monotonic()
+
+        messages = backend.poll(now + 0.05)
+
+        sample = next(message for message in messages if message["type"] == "sample")
+        self.assertEqual(sample["state"], "idle")
+        self.assertEqual(sample["force_n"], 50.0)
+
+    def test_startup_message_warns_when_load_cell_probe_has_no_sample(self) -> None:
+        class SilentLoadCell:
+            def tare(self) -> float:
+                return 0.0
+
+            def read_newtons(self) -> float:
+                return 0.0
+
+            def probe(self, timeout_s: float = 0.0) -> bool:
+                _ = timeout_s
+                return False
+
+        backend, _ = build_backend(load_cell=SilentLoadCell())
+
+        self.assertIn("Load cell did not produce an HX711 sample", backend.startup_message)
+
     def test_backend_faults_when_encoder_magnet_is_missing(self) -> None:
         backend, _ = build_backend(left_magnet_detected=False)
 

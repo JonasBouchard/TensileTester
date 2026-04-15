@@ -7,6 +7,15 @@ from circuitpython.simulation import SimulatedTesterBackend
 
 
 class SimulationBackendTests(unittest.TestCase):
+    def test_idle_poll_emits_samples_for_live_metrics(self) -> None:
+        backend = SimulatedTesterBackend(sample_interval_s=0.05)
+        now = time.monotonic()
+
+        events = backend.poll(now + 0.05)
+
+        sample = next(event for event in events if event["type"] == "sample")
+        self.assertEqual(sample["state"], "idle")
+
     def test_home_command_moves_through_homing_to_idle(self) -> None:
         backend = SimulatedTesterBackend(sample_interval_s=0.05)
         now = time.monotonic()

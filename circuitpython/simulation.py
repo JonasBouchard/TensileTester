@@ -94,11 +94,14 @@ class SimulatedTesterBackend:
     def poll(self, now):
         self._advance_motion(now)
         messages = []
-        if self.state in {"homing", "jogging", "running"} and now - self._last_sample_time >= self.sample_interval_s:
+        sample_emitted = False
+        if now - self._last_sample_time >= self.sample_interval_s:
             self._last_sample_time = now
             messages.append(self._sample(now))
+            sample_emitted = True
         if self._pending_status_message is not None:
-            messages.append(self._sample(now))
+            if not sample_emitted:
+                messages.append(self._sample(now))
             messages.append(self._status("idle", self._pending_status_message))
             self._pending_status_message = None
         return messages

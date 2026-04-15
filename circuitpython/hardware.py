@@ -219,6 +219,7 @@ class AxisConfig:
         hold_current_a: float,
         home_direction: int = -1,
         direction_inverted: bool = False,
+        encoder_inverted: bool = False,
         home_switch_active_low: bool | None = None,
         home_switch_pull_up: bool | None = None,
     ) -> None:
@@ -234,6 +235,7 @@ class AxisConfig:
         self.hold_current_a = hold_current_a
         self.home_direction = home_direction
         self.direction_inverted = direction_inverted
+        self.encoder_inverted = encoder_inverted
         self.home_switch_active_low = home_switch_active_low
         self.home_switch_pull_up = home_switch_pull_up
 
@@ -352,9 +354,16 @@ class HardwareDevices:
 
 
 class EncoderTracker:
-    def __init__(self, counts_per_rev: int, lead_mm_per_rev: float) -> None:
+    def __init__(
+        self,
+        counts_per_rev: int,
+        lead_mm_per_rev: float,
+        *,
+        inverted: bool = False,
+    ) -> None:
         self.counts_per_rev = counts_per_rev
         self.lead_mm_per_rev = lead_mm_per_rev
+        self.inverted = bool(inverted)
         self._last_raw: int | None = None
         self._absolute_counts = 0
         self._reference_counts = 0
@@ -365,11 +374,14 @@ class EncoderTracker:
             self._last_raw = raw
             return self._absolute_counts
 
-        self._absolute_counts += unwrap_encoder_step(
+        delta = unwrap_encoder_step(
             previous_raw=self._last_raw,
             new_raw=raw,
             counts_per_rev=self.counts_per_rev,
         )
+        if self.inverted:
+            delta = -delta
+        self._absolute_counts += delta
         self._last_raw = raw
         return self._absolute_counts
 
@@ -400,6 +412,10 @@ class NullLoadCell:
 
     def read_newtons(self) -> float:
         return 0.0
+
+    def probe(self, timeout_s: float = 0.0) -> bool:
+        _ = timeout_s
+        return False
 
 
 class DigitalStepperMotor:
@@ -613,6 +629,13 @@ class HX711LoadCell:
         self._tare_samples = max(1, tare_samples)
         self._last_force_n = 0.0
 
+    def probe(self, timeout_s: float = 0.2) -> bool:
+        sample = self._adc.read_raw(timeout_s=timeout_s)
+        if sample is None:
+            return False
+        self._history.append(sample)
+        return True
+
     def tare(self) -> float:
         samples: list[int] = []
         for _ in range(self._tare_samples):
@@ -756,6 +779,8 @@ def build_default_config() -> HardwareConfig:
     right_home_direction = int(getattr(settings, "RIGHT_HOME_DIRECTION", default_home_direction))
     left_direction_inverted = bool(getattr(settings, "MOTOR_A_DIRECTION_INVERTED", False))
     right_direction_inverted = bool(getattr(settings, "MOTOR_B_DIRECTION_INVERTED", False))
+    left_encoder_inverted = bool(getattr(settings, "LEFT_ENCODER_INVERTED", False))
+    right_encoder_inverted = bool(getattr(settings, "RIGHT_ENCODER_INVERTED", False))
     default_switch_active_low = bool(settings.HOME_SWITCH_ACTIVE_LOW)
     default_switch_pull_up = bool(settings.HOME_SWITCH_PULL_UP)
     left_switch_active_low = bool(
@@ -794,6 +819,7 @@ def build_default_config() -> HardwareConfig:
                 hold_current_a=float(settings.MOTOR_A_HOLD_CURRENT_A),
                 home_direction=left_home_direction,
                 direction_inverted=left_direction_inverted,
+                encoder_inverted=left_encoder_inverted,
                 home_switch_active_low=left_switch_active_low,
                 home_switch_pull_up=left_switch_pull_up,
             ),
@@ -810,6 +836,7 @@ def build_default_config() -> HardwareConfig:
                 hold_current_a=float(settings.MOTOR_B_HOLD_CURRENT_A),
                 home_direction=right_home_direction,
                 direction_inverted=right_direction_inverted,
+                encoder_inverted=right_encoder_inverted,
                 home_switch_active_low=right_switch_active_low,
                 home_switch_pull_up=right_switch_pull_up,
             ),
@@ -1125,6 +1152,7 @@ class HardwareTesterBackend:
                     tracker=EncoderTracker(
                         counts_per_rev=self._settings.mechanics.encoder_counts_per_rev,
                         lead_mm_per_rev=self._settings.mechanics.lead_mm_per_rev,
+                        inverted=hardware.axes[0].config.encoder_inverted,
                     ),
                     steps_per_mm=self._steps_per_mm,
                 ),
@@ -1133,6 +1161,7 @@ class HardwareTesterBackend:
                     tracker=EncoderTracker(
                         counts_per_rev=self._settings.mechanics.encoder_counts_per_rev,
                         lead_mm_per_rev=self._settings.mechanics.lead_mm_per_rev,
+                        inverted=hardware.axes[1].config.encoder_inverted,
                     ),
                     steps_per_mm=self._steps_per_mm,
                 ),
@@ -1153,6 +1182,7 @@ class HardwareTesterBackend:
             axis.devices.motor.set_enabled(True)
             driver = axis.devices.driver or NullDriver()
             driver.configure()
+        self._probe_load_cell()
         self._refresh_measurements()
         if self.state == "fault":
             raise RuntimeError(self._fault_message or "Hardware self-check failed.")
@@ -1174,6 +1204,20 @@ class HardwareTesterBackend:
     def _append_startup_warning(self, message: str) -> None:
         if message not in self._startup_warnings:
             self._startup_warnings.append(message)
+
+    def _probe_load_cell(self) -> None:
+        probe = getattr(self._load_cell, "probe", None)
+        if probe is None:
+            return
+        try:
+            ready = bool(probe(timeout_s=0.5))
+        except Exception as exc:
+            self._append_startup_warning("Load cell probe failed: %s" % exc)
+            return
+        if not ready:
+            self._append_startup_warning(
+                "Load cell did not produce an HX711 sample during startup. Check HX711 power, DT, SCK, and pin mapping."
+            )
 
     def _resolve_shared_home_axis(self) -> AxisRuntime | None:
         if self._settings.homing.switch_mode != "single":
@@ -1286,9 +1330,11 @@ class HardwareTesterBackend:
 
         self._advance_motion(now)
         messages = []
-        if self.state in ACTIVE_STATES and now - self._last_sample_time >= self.sample_interval_s:
+        sample_emitted = False
+        if now - self._last_sample_time >= self.sample_interval_s:
             self._last_sample_time = now
             messages.append(self._sample(now))
+            sample_emitted = True
 
         if self._pending_status_messages:
             messages.extend(self._pending_status_messages)
@@ -1297,7 +1343,8 @@ class HardwareTesterBackend:
         if self._motion_completed_message is not None:
             message = self._motion_completed_message
             self._motion_completed_message = None
-            messages.append(self._sample(now))
+            if not sample_emitted:
+                messages.append(self._sample(now))
             messages.append(self._status("idle", message))
 
         return messages
