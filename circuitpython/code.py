@@ -1,10 +1,10 @@
+import gc
 import json
 import time
 
 import usb_cdc
 
 from config import LOOP_DELAY_S, SAMPLE_INTERVAL_S, USE_SIMULATION
-from simulation import SimulatedTesterBackend
 
 SERIAL_CHANNEL = getattr(usb_cdc, "data", None) or usb_cdc.console
 READ_BUFFER = b""
@@ -47,17 +47,25 @@ def write_message(payload):
 
 
 def create_backend_for_mode(mode):
+    gc.collect()
     if mode == "simulation":
-        return SimulatedTesterBackend(sample_interval_s=SAMPLE_INTERVAL_S)
+        from simulation import SimulatedTesterBackend
+
+        backend = SimulatedTesterBackend(sample_interval_s=SAMPLE_INTERVAL_S)
+        backend.mode = mode
+        return backend
     if mode == "hardware":
         from hardware import HardwareTesterBackend
 
-        return HardwareTesterBackend()
+        backend = HardwareTesterBackend()
+        backend.mode = mode
+        return backend
     raise ValueError("Unsupported mode: %r" % mode)
 
 
 def main():
     initial_mode = "simulation" if USE_SIMULATION else "hardware"
+    current_mode = initial_mode
     backend = create_backend_for_mode(initial_mode)
     pending_startup_status = {
         "type": "status",
@@ -86,7 +94,22 @@ def main():
                 if str(command.get("cmd", "")) in {"set_mode", "set mode"}:
                     mode = str(command.get("mode", ""))
                     try:
+                        if mode == current_mode:
+                            write_message(
+                                {
+                                    "type": "status",
+                                    "state": backend.state,
+                                    "message": backend.startup_message,
+                                }
+                            )
+                            continue
+
+                        old_backend = backend
+                        backend = None
+                        del old_backend
+                        gc.collect()
                         backend = create_backend_for_mode(mode)
+                        current_mode = mode
                     except ValueError:
                         write_message(
                             {
